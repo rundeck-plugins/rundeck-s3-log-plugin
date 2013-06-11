@@ -1,0 +1,71 @@
+version = '1.5.4-SNAPSHOT'
+defaultTasks 'clean','build'
+apply plugin: 'java'
+apply plugin: 'idea'
+sourceCompatibility = 1.5
+ext.rundeckPluginVersion= '1.1'
+
+/**
+ * Set this to a comma-separated list of full classnames of your implemented Rundeck
+ * plugins.
+ */
+ext.pluginClassNames='org.rundeck.plugin.S3LogFileStoragePlugin'
+
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+
+    //use the local third-party directory for included pre-built jars
+    add(new org.apache.ivy.plugins.resolver.FileSystemResolver()) {
+        name = 'thirdparty'
+        addArtifactPattern "$projectDir/third-party/[module]-[revision]/[module]-[revision](-[classifier]).[ext]"
+        descriptor = 'optional'
+        checkmodified = true
+    }
+}
+
+configurations{
+    //declare custom pluginLibs configuration to include only libs for this plugin
+    pluginLibs
+
+    //declare compile to extend from pluginLibs so it inherits the dependencies
+    compile{
+        extendsFrom pluginLibs
+    }
+}
+
+dependencies {
+    // add any third-party jar dependencies you wish to include in the plugin
+    // using the `pluginLibs` configuration as shown here:
+    
+    pluginLibs group: 'com.amazonaws', name: 'aws-java-sdk', version: '1.4.5'
+    
+    
+    //the compile dependency won't add the rundeck-core jar to the plugin contents
+    compile group: 'org.rundeck', name: 'rundeck-core', version: '1.5.4-SNAPSHOT'
+}
+
+// task to copy plugin libs to output/lib dir
+task copyToLib(type: Copy) {
+    into "$buildDir/output/lib"
+    from configurations.pluginLibs
+}
+
+
+jar {
+    from "$buildDir/output"
+    manifest {
+        def libList = configurations.pluginLibs.collect{'lib/'+it.name}.join(' ')
+        attributes 'Rundeck-Plugin-Classnames': pluginClassNames
+        attributes 'Rundeck-Plugin-File-Version': version
+        attributes 'Rundeck-Plugin-Version': rundeckPluginVersion, 'Rundeck-Plugin-Archive': 'true'
+        attributes 'Rundeck-Plugin-Libs': "${libList}"
+    }
+}
+//set jar task to depend on copyToLib
+jar.dependsOn(copyToLib)
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.3'
+}
