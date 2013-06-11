@@ -3,13 +3,13 @@ defaultTasks 'clean','build'
 apply plugin: 'java'
 apply plugin: 'idea'
 sourceCompatibility = 1.5
-ext.rundeckPluginVersion= '1.1'
+ext.rundeckPluginVersion= '1.2'
 
 /**
  * Set this to a comma-separated list of full classnames of your implemented Rundeck
  * plugins.
  */
-ext.pluginClassNames='org.rundeck.plugin.S3LogFileStoragePlugin'
+ext.pluginClassNames='org.rundeck.plugins.S3LogFileStoragePlugin'
 
 
 repositories {
@@ -61,6 +61,8 @@ jar {
         attributes 'Rundeck-Plugin-File-Version': version
         attributes 'Rundeck-Plugin-Version': rundeckPluginVersion, 'Rundeck-Plugin-Archive': 'true'
         attributes 'Rundeck-Plugin-Libs': "${libList}"
+        attributes 'Main-Class': "org.rundeck.plugins.S3LogFileStoragePlugin"
+        attributes 'Class-Path': "${libList} lib/rundeck-core-1.5.4-SNAPSHOT.jar"
     }
 }
 //set jar task to depend on copyToLib
