@@ -2,6 +2,7 @@ package org.rundeck.plugins;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.s3.AmazonS3;
@@ -30,15 +31,21 @@ import java.util.logging.Logger;
 @PluginDescription(title = "S3", description = "Stores log files into an S3 bucket")
 public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredentials {
 
-    public static final String DEFAULT_PATH_FORMAT = "rundeck/project/$PROJECT/logs/$ID";
+    public static final String DEFAULT_PATH_FORMAT = "project/${job.project}/${job.execid}.rdlog";
+    public static final String DEFAULT_REGION = "us-east-1";
 
     Logger logger = Logger.getLogger(S3LogFileStoragePlugin.class.getName());
 
-    @PluginProperty(title = "AWS Access Key", required = true, description = "AWS Access Key")
+    @PluginProperty(title = "AWS Access Key", description = "AWS Access Key")
     private String AWSAccessKeyId;
 
-    @PluginProperty(title = "AWS Secret Key", required = true, description = "AWS Secret Key")
+    @PluginProperty(title = "AWS Secret Key", description = "AWS Secret Key")
     private String AWSSecretKey;
+
+    @PluginProperty(title = "AWS Credentials File", description = "Path to a AWSCredentials.properties file " +
+            "containing " +
+            "'accessKey' and 'secretKey'.")
+    private String AWSCredentialsFile;
 
     @PluginProperty(title = "Bucket name", required = true, description = "Bucket to store files in")
     private String bucket;
@@ -47,8 +54,9 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
             title = "Path",
             required = true,
             description = "The path in the bucket to store a log file. You can use these " +
-                    "expansion variables: ($ID = execution ID, $PROJECT = project name, $JOB = job name, $GROUP = " +
-                    "group name, $JOBID = job ID, $RUN = blank if it is a job, otherwise the word 'run' ). Default: "
+                    "expansion variables: (${job.execid} = execution ID, ${job.project} = project name, " +
+                    "${job.id} = job UUID (or blank)." +
+                    " Default: "
                     + DEFAULT_PATH_FORMAT,
             defaultValue = DEFAULT_PATH_FORMAT)
     private String path;
@@ -57,7 +65,7 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
             title = "S3 Region",
             description = "AWS S3 Region to use.  You can use one of the supported region names",
             required = true,
-            defaultValue = "us-east-1")
+            defaultValue = DEFAULT_REGION)
     private String region;
 
     private String expandedPath;
@@ -71,15 +79,64 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
 
     public void initialize(Map<String, ? extends Object> context) {
         this.context = context;
-        expandedPath = expandPath(getPath(), context);
-        amazonS3 = new AmazonS3Client(this);
+        if (null != AWSAccessKeyId && null != AWSSecretKey) {
+            amazonS3 = createAmazonS3Client(this);
+        } else if (null != getAWSCredentialsFile()) {
+            File creds = new File(getAWSCredentialsFile());
+            if (!creds.exists() || !creds.canRead()) {
+                throw new IllegalArgumentException("Credentials file does not exist or cannot be read: " +
+                        getAWSCredentialsFile());
+            }
+            try {
+                amazonS3 = createAmazonS3Client(new PropertiesCredentials(creds));
+            } catch (IOException e) {
+                throw new RuntimeException("Credentials file could not be read: " + getAWSCredentialsFile() + ": " + e
+                        .getMessage(), e);
+            }
+
+        } else {
+            throw new IllegalArgumentException("AWSCredentialsFile, or AWSAccessKeyId and AWSSecretKey must be " +
+                    "configured.");
+        }
+
         Region awsregion = RegionUtils.getRegion(getRegion());
         if (null == awsregion) {
-            throw new IllegalStateException("Region was not found: " + getRegion());
+            throw new IllegalArgumentException("Region was not found: " + getRegion());
         }
 
         amazonS3.setRegion(awsregion);
+        if (null == bucket || "".equals(bucket.trim())) {
+            throw new IllegalArgumentException("bucket was not set");
+        }
+        if (null == getPath() || "".equals(getPath().trim())) {
+            throw new IllegalArgumentException("path was not set");
+        }
+        if (!getPath().contains("${job.execid}") && !getPath().endsWith("/")) {
+            throw new IllegalArgumentException("path must contain ${job.execid} or end with /");
+        }
+        String configpath= getPath();
+        if (!configpath.contains("${job.execid}") && configpath.endsWith("/")) {
+            configpath = path + "/${job.execid}.rdlog";
+        }
+        expandedPath = expandPath(configpath, context);
+        if (null == expandedPath || "".equals(expandedPath.trim())) {
+            throw new IllegalArgumentException("expanded value of path was empty");
+        }
+        if (expandedPath.endsWith("/")) {
+            throw new IllegalArgumentException("expanded value of path must not end with /");
+        }
 
+    }
+
+    /**
+     * can override for testing
+     *
+     * @param awsCredentials
+     *
+     * @return
+     */
+    protected AmazonS3 createAmazonS3Client(AWSCredentials awsCredentials) {
+        return new AmazonS3Client(awsCredentials);
     }
 
     /**
@@ -93,13 +150,9 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
     static String expandPath(String pathFormat, Map<String, ? extends Object> context) {
         String result = pathFormat.replaceAll("^/+", "");
         if (null != context) {
-            result = result.replaceAll("\\$ID", notNull(context, "execid", ""));
-            result = result.replaceAll("\\$JOBID", notNull(context, "id", ""));
-            result = result.replaceAll("\\$JOB", notNull(context, "name", ""));
-            result = result.replaceAll("\\$GROUP", notNull(context, "group", ""));
-            result = result.replaceAll("\\$PROJECT", notNull(context, "project", ""));
-            result = result.replaceAll("\\$USER", notNull(context, "username", ""));
-            result = result.replaceAll("\\$RUN", null != context.get("id") ? "" : "run");
+            result = result.replaceAll("\\$\\{job.execid\\}", notNull(context, "execid", ""));
+            result = result.replaceAll("\\$\\{job.id\\}", notNull(context, "id", ""));
+            result = result.replaceAll("\\$\\{job.project\\}", notNull(context, "project", ""));
         }
         result = result.replaceAll("/+", "/");
 
@@ -118,8 +171,14 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
         logger.log(Level.FINE, "getState for S3 bucket {0}:{1}", new Object[]{getBucket(), expandedPath});
         try {
             ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(getObjectRequest);
-            String metaId = objectMetadata.getUserMetadata().get("rundeck.execid");
+            Map<String, String> userMetadata = objectMetadata.getUserMetadata();
+            String metaId = null;
+            if (null != userMetadata) {
+                metaId = userMetadata.get("rundeck.execid");
+            }
             logger.log(Level.FINE, "Metadata {0}", new Object[]{objectMetadata.getUserMetadata()});
+            //execution ID is stored in the user metadata for the object
+            //compare to the context execution ID we are expecting
             boolean matchesId = context.get("execid").equals(metaId);
             if (!matchesId) {
                 logger.log(Level.WARNING, "S3 Object metadata 'rundeck.execid' was not expected: {0}, expected {1}",
@@ -142,13 +201,13 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
         return state;
     }
 
-    public boolean store(InputStream stream, long length, Date lastModified) throws IOException {
+    public boolean store(InputStream stream, long length, Date lastModified) {
         boolean success = false;
+        logger.log(Level.FINE, "Storing content to S3 bucket {0} path {1}", new Object[]{getBucket(),
+                expandedPath});
+        ObjectMetadata objectMetadata = createObjectMetadata(length, lastModified);
+        PutObjectRequest putObjectRequest = new PutObjectRequest(getBucket(), expandedPath, stream, objectMetadata);
         try {
-            logger.log(Level.FINE, "Storing content to S3 bucket {0} path {1}", new Object[]{getBucket(),
-                    expandedPath});
-            ObjectMetadata objectMetadata = createObjectMetadata(length, lastModified);
-            PutObjectRequest putObjectRequest = new PutObjectRequest(getBucket(), expandedPath, stream, objectMetadata);
             PutObjectResult putObjectResult = amazonS3.putObject(putObjectRequest);
             success = true;
         } catch (AmazonClientException e) {
@@ -260,5 +319,13 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
 
     public void setRegion(String region) {
         this.region = region;
+    }
+
+    public String getAWSCredentialsFile() {
+        return AWSCredentialsFile;
+    }
+
+    public void setAWSCredentialsFile(String AWSCredentialsFile) {
+        this.AWSCredentialsFile = AWSCredentialsFile;
     }
 }
