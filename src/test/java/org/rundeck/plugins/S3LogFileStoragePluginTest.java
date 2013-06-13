@@ -108,10 +108,18 @@ public class S3LogFileStoragePluginTest {
 
         public String getObjectBucketName;
         public String getObjectkey;
+        boolean getObjectClientException=false;
+        boolean getObjectS3Exception=false;
 
         public S3Object getObject(String bucketName, String key) throws AmazonClientException, AmazonServiceException {
             getObjectBucketName = bucketName;
             getObjectkey = key;
+            if(getObjectClientException) {
+                throw new AmazonClientException("getObject");
+            }
+            if(getObjectS3Exception) {
+                throw new AmazonS3Exception("getObject");
+            }
             return getObject;
         }
 
@@ -484,9 +492,13 @@ public class S3LogFileStoragePluginTest {
 
     class testOutputStream extends OutputStream{
         boolean wasWrite=false;
+        boolean writeIOException=false;
         @Override
         public void write(int i) throws IOException {
-            wasWrite=true;
+            wasWrite = true;
+            if(writeIOException) {
+                throw new IOException("testOutputStream.writeIOException");
+            }
         }
 
         boolean wasClosed;
@@ -537,6 +549,34 @@ public class S3LogFileStoragePluginTest {
         Assert.assertFalse(stream.wasClosed);
     }
     @Test
+    public void retrieveClientException() throws IOException {
+        testPlugin testPlugin = initializeTestPlugin();
+        testOutputStream stream = new testOutputStream();
+
+        testPlugin.getTestS3().getObjectClientException=true;
+
+        boolean result = testPlugin.retrieve(stream);
+        Assert.assertFalse(result);
+        Assert.assertEquals("testBucket", testPlugin.getTestS3().getObjectBucketName);
+        Assert.assertEquals("project/testproject/testexecid.rdlog", testPlugin.getTestS3().getObjectkey);
+        Assert.assertFalse(stream.wasWrite);
+        Assert.assertFalse(stream.wasClosed);
+    }
+    @Test
+    public void retrieveS3Exception() throws IOException {
+        testPlugin testPlugin = initializeTestPlugin();
+        testOutputStream stream = new testOutputStream();
+
+        testPlugin.getTestS3().getObjectS3Exception=true;
+
+        boolean result = testPlugin.retrieve(stream);
+        Assert.assertFalse(result);
+        Assert.assertEquals("testBucket", testPlugin.getTestS3().getObjectBucketName);
+        Assert.assertEquals("project/testproject/testexecid.rdlog", testPlugin.getTestS3().getObjectkey);
+        Assert.assertFalse(stream.wasWrite);
+        Assert.assertFalse(stream.wasClosed);
+    }
+    @Test
     public void retrieveInputIOException() throws IOException {
         testPlugin testPlugin = initializeTestPlugin();
         testOutputStream stream = new testOutputStream();
@@ -560,6 +600,31 @@ public class S3LogFileStoragePluginTest {
         Assert.assertFalse(testInputStream.bytes < 0);
         Assert.assertTrue(testInputStream.wasClosed);
         Assert.assertFalse(stream.wasWrite);
+        Assert.assertFalse(stream.wasClosed);
+    }
+    @Test
+    public void retrieveOutputIOException() throws IOException {
+        testPlugin testPlugin = initializeTestPlugin();
+        testOutputStream stream = new testOutputStream();
+        stream.writeIOException=true;
+        testInputStream testInputStream = new testInputStream();
+
+        testPlugin.getTestS3().getObject = new S3Object();
+        testPlugin.getTestS3().getObject.setObjectContent(testInputStream);
+
+        boolean result = false;
+        try {
+            result = testPlugin.retrieve(stream);
+            Assert.fail("should throw exception");
+        } catch (IOException e) {
+            Assert.assertEquals("testOutputStream.writeIOException", e.getMessage());
+        }
+        Assert.assertFalse(result);
+        Assert.assertEquals("testBucket", testPlugin.getTestS3().getObjectBucketName);
+        Assert.assertEquals("project/testproject/testexecid.rdlog", testPlugin.getTestS3().getObjectkey);
+        Assert.assertTrue(testInputStream.wasRead);
+        Assert.assertTrue(testInputStream.wasClosed);
+        Assert.assertTrue(stream.wasWrite);
         Assert.assertFalse(stream.wasClosed);
     }
 
