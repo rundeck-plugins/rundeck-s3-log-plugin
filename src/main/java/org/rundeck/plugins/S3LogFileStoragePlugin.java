@@ -9,6 +9,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.*;
 import com.dtolabs.rundeck.core.logging.LogFileState;
+import com.dtolabs.rundeck.core.logging.LogFileStorageException;
 import com.dtolabs.rundeck.core.plugins.Plugin;
 import com.dtolabs.rundeck.plugins.ServiceNameConstants;
 import com.dtolabs.rundeck.plugins.descriptions.PluginDescription;
@@ -164,7 +165,7 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
         return value != null ? value.toString() : defaultValue;
     }
 
-    public LogFileState getState() {
+    public boolean isAvailable() throws LogFileStorageException {
         LogFileState state = LogFileState.NOT_FOUND;
 
         GetObjectMetadataRequest getObjectRequest = new GetObjectMetadataRequest(getBucket(), expandedPath);
@@ -184,7 +185,7 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
                 logger.log(Level.WARNING, "S3 Object metadata 'rundeck.execid' was not expected: {0}, expected {1}",
                         new Object[]{metaId, context.get("execid")});
             }
-            return LogFileState.AVAILABLE;
+            return true;
         } catch (AmazonS3Exception e) {
             if (e.getStatusCode() == 404) {
                 //not found
@@ -192,16 +193,18 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
             } else {
                 logger.log(Level.SEVERE, e.getMessage());
                 logger.log(Level.FINE, e.getMessage(), e);
+                throw new LogFileStorageException(e.getMessage(), e);
             }
         } catch (AmazonClientException e) {
             logger.log(Level.SEVERE, e.getMessage());
             logger.log(Level.FINE, e.getMessage(), e);
+            throw new LogFileStorageException(e.getMessage(), e);
         }
 
-        return state;
+        return false;
     }
 
-    public boolean store(InputStream stream, long length, Date lastModified) {
+    public boolean store(InputStream stream, long length, Date lastModified) throws LogFileStorageException {
         boolean success = false;
         logger.log(Level.FINE, "Storing content to S3 bucket {0} path {1}", new Object[]{getBucket(),
                 expandedPath});
@@ -212,6 +215,7 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
             success = true;
         } catch (AmazonClientException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
+            throw new LogFileStorageException(e.getMessage(), e);
         }
         return success;
     }
@@ -232,7 +236,7 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
     }
 
 
-    public boolean retrieve(OutputStream stream) throws IOException {
+    public boolean retrieve(OutputStream stream) throws IOException, LogFileStorageException {
         S3Object object = null;
         boolean success = false;
         try {
@@ -246,12 +250,13 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
             }
         } catch (AmazonClientException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
+            throw new LogFileStorageException(e.getMessage(), e);
         }
 
         return success;
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, LogFileStorageException {
         S3LogFileStoragePlugin s3LogFileStoragePlugin = new S3LogFileStoragePlugin();
         String action = args[0];
         Map<String, Object> context = new HashMap<String, Object>();
@@ -276,7 +281,7 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
         } else if ("retrieve".equals(action)) {
             s3LogFileStoragePlugin.retrieve(new FileOutputStream(new File(args[3])));
         } else if ("state".equals(action)) {
-            System.out.println(s3LogFileStoragePlugin.getState());
+            System.out.println("available? " + s3LogFileStoragePlugin.isAvailable());
         }
     }
 
