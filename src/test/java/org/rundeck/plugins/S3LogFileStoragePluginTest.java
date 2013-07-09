@@ -61,6 +61,9 @@ public class S3LogFileStoragePluginTest {
         HashMap<String, Object> stringHashMap = new HashMap<String, Object>();
         stringHashMap.put("execid", "testexecid");
         stringHashMap.put("project", "testproject");
+        stringHashMap.put("url", "http://rundeck:4440/execution/5/show");
+        stringHashMap.put("serverUrl", "http://rundeck:4440");
+        stringHashMap.put("serverUUID", "123");
         return stringHashMap;
     }
 
@@ -517,9 +520,12 @@ public class S3LogFileStoragePluginTest {
         Assert.assertEquals(length, testPlugin.getTestS3().putObjectRequest.getMetadata().getContentLength());
         Assert.assertEquals(lastModified, testPlugin.getTestS3().putObjectRequest.getMetadata().getLastModified());
         Map<String, String> userMetadata = testPlugin.getTestS3().putObjectRequest.getMetadata().getUserMetadata();
-        Assert.assertEquals(2, userMetadata.size());
+        Assert.assertEquals(5, userMetadata.size());
         Assert.assertEquals(testContext().get("execid"), userMetadata.get("rundeck.execid"));
         Assert.assertEquals(testContext().get("project"), userMetadata.get("rundeck.project"));
+        Assert.assertEquals(testContext().get("url"), userMetadata.get("rundeck.url"));
+        Assert.assertEquals(testContext().get("serverUrl"), userMetadata.get("rundeck.serverUrl"));
+        Assert.assertEquals(testContext().get("serverUUID"), userMetadata.get("rundeck.serverUUID"));
     }
 
     class testOutputStream extends OutputStream {

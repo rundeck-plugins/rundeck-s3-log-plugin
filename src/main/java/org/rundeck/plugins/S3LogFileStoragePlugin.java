@@ -220,7 +220,11 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
         return success;
     }
 
-    private static final String[] STORED_META = new String[]{"execid", "username", "project"};
+    /**
+     * Metadata keys from the Execution context that will be stored as User Metadata in the S3 Object
+     */
+    private static final String[] STORED_META = new String[]{"execid", "username", "project", "url", "serverUrl",
+            "serverUUID"};
 
     private ObjectMetadata createObjectMetadata(long length, Date lastModified) {
         ObjectMetadata metadata = new ObjectMetadata();
