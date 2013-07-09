@@ -40,6 +40,6 @@ Add configuration properties for the plugin.  You can define these in `framework
 For example:
 
     framework.plugin.LogFileStorage.org.rundeck.amazon-s3.AWSAccessKeyId=ABC123...
-framework.plugin.LogFileStorage.org.rundeck.amazon-s3.AWSSecretKey=ABC321...
-framework.plugin.LogFileStorage.org.rundeck.amazon-s3.bucket=test-rundeck-logs
-framework.plugin.LogFileStorage.org.rundeck.amazon-s3.path=logs/$PROJECT/$ID.log
+    framework.plugin.LogFileStorage.org.rundeck.amazon-s3.AWSSecretKey=ABC321...
+    framework.plugin.LogFileStorage.org.rundeck.amazon-s3.bucket=test-rundeck-logs
+    framework.plugin.LogFileStorage.org.rundeck.amazon-s3.path=logs/$PROJECT/$ID.log
