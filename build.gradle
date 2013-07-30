@@ -1,4 +1,4 @@
-version = '0.9'
+version = '0.10'
 defaultTasks 'clean','build'
 apply plugin: 'java'
 apply plugin: 'idea'
