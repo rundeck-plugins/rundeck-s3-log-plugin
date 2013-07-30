@@ -80,6 +80,10 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
 
     public void initialize(Map<String, ? extends Object> context) {
         this.context = context;
+        if ((null != getAWSAccessKeyId() && null == getAWSSecretKey()) ||
+                (null == getAWSAccessKeyId() && null != getAWSSecretKey())) {
+            throw new IllegalArgumentException("AWSAccessKeyId and AWSSecretKey must both be configured.");
+        }
         if (null != AWSAccessKeyId && null != AWSSecretKey) {
             amazonS3 = createAmazonS3Client(this);
         } else if (null != getAWSCredentialsFile()) {
@@ -94,10 +98,9 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
                 throw new RuntimeException("Credentials file could not be read: " + getAWSCredentialsFile() + ": " + e
                         .getMessage(), e);
             }
-
         } else {
-            throw new IllegalArgumentException("AWSCredentialsFile, or AWSAccessKeyId and AWSSecretKey must be " +
-                    "configured.");
+            //use credentials provider chain
+            amazonS3 = createAmazonS3Client();
         }
 
         Region awsregion = RegionUtils.getRegion(getRegion());
@@ -138,6 +141,15 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
      */
     protected AmazonS3 createAmazonS3Client(AWSCredentials awsCredentials) {
         return new AmazonS3Client(awsCredentials);
+    }
+    /**
+     * can override for testing
+     *
+     *
+     * @return
+     */
+    protected AmazonS3 createAmazonS3Client() {
+        return new AmazonS3Client();
     }
 
     /**

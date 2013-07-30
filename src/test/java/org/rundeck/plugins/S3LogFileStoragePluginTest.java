@@ -81,6 +81,9 @@ public class S3LogFileStoragePluginTest {
         testS3(AWSCredentials creds) {
             this.creds = creds;
         }
+        testS3(){
+            this.creds=null;
+        }
 
 
         public boolean getObjectMetadata404 = false;
@@ -169,27 +172,18 @@ public class S3LogFileStoragePluginTest {
             return testS3;
         }
 
+        @Override
+        protected AmazonS3 createAmazonS3Client() {
+            testS3 = new S3LogFileStoragePluginTest.testS3();
+            return testS3;
+        }
+
         public S3LogFileStoragePluginTest.testS3 getTestS3() {
             return testS3;
         }
 
         public void setTestS3(S3LogFileStoragePluginTest.testS3 testS3) {
             this.testS3 = testS3;
-        }
-    }
-
-    @Test
-    public void initializeUnsetCredentials() {
-
-        testPlugin testPlugin = new S3LogFileStoragePluginTest.testPlugin();
-        try {
-            testPlugin.initialize(testContext());
-            Assert.fail("Should thrown exception");
-        } catch (IllegalArgumentException e) {
-            Assert.assertTrue(e.getMessage().contains("must be configured"));
-            Assert.assertTrue(e.getMessage().contains("AWSAccessKeyId"));
-            Assert.assertTrue(e.getMessage().contains("AWSSecretKey"));
-            Assert.assertTrue(e.getMessage().contains("AWSCredentialsFile"));
         }
     }
 
@@ -202,10 +196,9 @@ public class S3LogFileStoragePluginTest {
             testPlugin.initialize(testContext());
             Assert.fail("Should thrown exception");
         } catch (IllegalArgumentException e) {
-            Assert.assertTrue(e.getMessage().contains("must be configured"));
+            Assert.assertTrue(e.getMessage().contains("must both be configured"));
             Assert.assertTrue(e.getMessage().contains("AWSAccessKeyId"));
             Assert.assertTrue(e.getMessage().contains("AWSSecretKey"));
-            Assert.assertTrue(e.getMessage().contains("AWSCredentialsFile"));
         }
     }
 
@@ -218,10 +211,9 @@ public class S3LogFileStoragePluginTest {
             testPlugin.initialize(testContext());
             Assert.fail("Should thrown exception");
         } catch (IllegalArgumentException e) {
-            Assert.assertTrue(e.getMessage().contains("must be configured"));
+            Assert.assertTrue(e.getMessage().contains("must both be configured"));
             Assert.assertTrue(e.getMessage().contains("AWSAccessKeyId"));
             Assert.assertTrue(e.getMessage().contains("AWSSecretKey"));
-            Assert.assertTrue(e.getMessage().contains("AWSCredentialsFile"));
         }
     }
 
@@ -300,6 +292,14 @@ public class S3LogFileStoragePluginTest {
         testPlugin.setBucket("blah");
         testPlugin.setAWSAccessKeyId("blah");
         testPlugin.setAWSSecretKey("blah");
+        testPlugin.initialize(testContext());
+        Assert.assertNotNull(testPlugin.getTestS3().getRegion());
+    }
+
+    @Test
+    public void initializeValidCredentialsDefault() {
+        testPlugin testPlugin = new S3LogFileStoragePluginTest.testPlugin();
+        testPlugin.setBucket("blah");
         testPlugin.initialize(testContext());
         Assert.assertNotNull(testPlugin.getTestS3().getRegion());
     }
