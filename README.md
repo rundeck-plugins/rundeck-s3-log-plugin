@@ -1,6 +1,7 @@
 # Rundeck S3 Log Storage Plugin
 
-This is a plugin for [Rundeck](http://rundeck.org) that uses [Amazon S3](http://aws.amazon.com/s3) to store execution log files, for backup or for cloud-friendly behavior.
+This is a plugin for [Rundeck](http://rundeck.org) that uses [Amazon S3](http://aws.amazon.com/s3) to store execution
+log files, for backup or for cloud-friendly behavior.
 
 ## Build
 
@@ -8,15 +9,28 @@ This is a plugin for [Rundeck](http://rundeck.org) that uses [Amazon S3](http://
 
 ## Install
 
-Copy the `rundeck-s3-log-plugin-1.0.jar` file to the `libext/` directory inside your Rundeck installation.
+Copy the `rundeck-s3-log-plugin-x.y.jar` file to the `libext/` directory inside your Rundeck installation.
 
 Enable the LogFileStorage provider named `org.rundeck.amazon-s3` in your `rundeck-config` file:
 
     rundeck.execution.logs.fileStoragePlugin=org.rundeck.amazon-s3
 
+## AWS Credentials
+
+The plugin will by default use the "credentials provider chain" for AWS access credentials, which allows you to
+externally configure the credentials in any of three ways:
+
+1. Environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_KEY`
+2. Java system properties `aws.accessKeyId` and `aws.secretKey`
+3. Instance Profile credentials, if you are running on EC2. (See [the IAM user guide][1]).
+
+[1]: http://docs.aws.amazon.com/IAM/latest/UserGuide/role-usecase-ec2app.html
+
+If you want to specify access key and secret key, you can do so in the configuration:
+
 ## Configuration
 
-To configure the plugin set these plugin configuration property values:
+To configure the AWS access credentials you can set these property values:
 
 `AWSAccessKeyId` : access key, required if using `AWSSecretKey`
 
@@ -25,23 +39,24 @@ To configure the plugin set these plugin configuration property values:
 `AWSCredentialsFile` : properties file which contains `accessKey` and `secretKey` entries.  Alternative to specifying
 the `AWSAccessKeyId and `AWSSecretKey`
 
+S3 configuration uses these plugin configuration property values:
+
 `bucket` : name of the S3 bucket to use
 
 `path` :  a path-like string that defines where in the bucket to store the log for a particular execution.  You can
  include variables to expand. Default value: `rundeck/project/$PROJECT/logs/$ID`
 
- `region` : name of the region to use. Default is `us-east-1`.
-
-Variables include:
+Variables in the `path` value include:
 
 * `${job.execid}` - the execution ID
 * `${job.project}` - the project name
 * `${job.id}` - the Job UUID if it exists
 
-
 `region` : AWS region name to use. Default: `us-east-1`
 
-Add configuration properties for the plugin.  You can define these in `framework.properties` by prefixing the property name with the stem: `framework.plugin.LogFileStorage.org.rundeck.amazon-s3.`.  Or in a project's project.properties file with the stem `project.plugin.LogFileStorage.org.rundeck.amazon-s3.`.
+You can define the configuration values in `framework.properties` by prefixing the property name with the stem:
+ `framework.plugin.LogFileStorage.org.rundeck.amazon-s3.`.  Or in a project's project.properties file with the stem
+ `project.plugin.LogFileStorage.org.rundeck.amazon-s3.`.
 
 For example:
 
