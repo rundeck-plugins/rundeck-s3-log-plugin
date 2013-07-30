@@ -16,6 +16,11 @@ repositories {
     mavenLocal()
     mavenCentral()
 
+    maven {
+        // maven snapshot repo since we are using SNAPSHOT of rundeck-core for now
+        url "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
+
     //use the local third-party directory for included pre-built jars
     add(new org.apache.ivy.plugins.resolver.FileSystemResolver()) {
         name = 'thirdparty'
