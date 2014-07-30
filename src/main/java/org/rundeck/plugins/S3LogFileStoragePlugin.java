@@ -8,13 +8,13 @@ import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.*;
+import com.dtolabs.rundeck.core.logging.ExecutionFileStorageException;
 import com.dtolabs.rundeck.core.logging.LogFileState;
-import com.dtolabs.rundeck.core.logging.LogFileStorageException;
 import com.dtolabs.rundeck.core.plugins.Plugin;
 import com.dtolabs.rundeck.plugins.ServiceNameConstants;
 import com.dtolabs.rundeck.plugins.descriptions.PluginDescription;
 import com.dtolabs.rundeck.plugins.descriptions.PluginProperty;
-import com.dtolabs.rundeck.plugins.logging.LogFileStoragePlugin;
+import com.dtolabs.rundeck.plugins.logging.ExecutionFileStoragePlugin;
 import com.dtolabs.utils.Streams;
 
 import java.io.*;
@@ -26,13 +26,13 @@ import java.util.logging.Logger;
 
 
 /**
- * {@link LogFileStoragePlugin} that stores files to Amazon S3.
+ * {@link ExecutionFileStoragePlugin} that stores files to Amazon S3.
  */
-@Plugin(service = ServiceNameConstants.LogFileStorage, name = "org.rundeck.amazon-s3")
+@Plugin(service = ServiceNameConstants.ExecutionFileStorage, name = "org.rundeck.amazon-s3")
 @PluginDescription(title = "S3", description = "Stores log files into an S3 bucket")
-public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredentials {
+public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCredentials {
 
-    public static final String DEFAULT_PATH_FORMAT = "project/${job.project}/${job.execid}.rdlog";
+    public static final String DEFAULT_PATH_FORMAT = "project/${job.project}/${job.execid}";
     public static final String DEFAULT_REGION = "us-east-1";
 
     Logger logger = Logger.getLogger(S3LogFileStoragePlugin.class.getName());
@@ -120,7 +120,7 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
         }
         String configpath= getPath();
         if (!configpath.contains("${job.execid}") && configpath.endsWith("/")) {
-            configpath = path + "/${job.execid}.rdlog";
+            configpath = path + "/${job.execid}";
         }
         expandedPath = expandPath(configpath, context);
         if (null == expandedPath || "".equals(expandedPath.trim())) {
@@ -177,11 +177,11 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
         return value != null ? value.toString() : defaultValue;
     }
 
-    public boolean isAvailable() throws LogFileStorageException {
+    public boolean isAvailable(final String filetype) throws ExecutionFileStorageException {
         LogFileState state = LogFileState.NOT_FOUND;
 
-        GetObjectMetadataRequest getObjectRequest = new GetObjectMetadataRequest(getBucket(), expandedPath);
-        logger.log(Level.FINE, "getState for S3 bucket {0}:{1}", new Object[]{getBucket(), expandedPath});
+        GetObjectMetadataRequest getObjectRequest = new GetObjectMetadataRequest(getBucket(), resolvedFilepath(expandedPath, filetype));
+        logger.log(Level.FINE, "getState for S3 bucket {0}:{1}", new Object[]{getBucket(), resolvedFilepath(expandedPath, filetype)});
         try {
             ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(getObjectRequest);
             Map<String, String> userMetadata = objectMetadata.getUserMetadata();
@@ -201,33 +201,33 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
         } catch (AmazonS3Exception e) {
             if (e.getStatusCode() == 404) {
                 //not found
-                logger.log(Level.FINE, "getState: S3 Object not found for {0}", expandedPath);
+                logger.log(Level.FINE, "getState: S3 Object not found for {0}", resolvedFilepath(expandedPath, filetype));
             } else {
                 logger.log(Level.SEVERE, e.getMessage());
                 logger.log(Level.FINE, e.getMessage(), e);
-                throw new LogFileStorageException(e.getMessage(), e);
+                throw new ExecutionFileStorageException(e.getMessage(), e);
             }
         } catch (AmazonClientException e) {
             logger.log(Level.SEVERE, e.getMessage());
             logger.log(Level.FINE, e.getMessage(), e);
-            throw new LogFileStorageException(e.getMessage(), e);
+            throw new ExecutionFileStorageException(e.getMessage(), e);
         }
 
         return false;
     }
 
-    public boolean store(InputStream stream, long length, Date lastModified) throws LogFileStorageException {
+    public boolean store(final String filetype, InputStream stream, long length, Date lastModified) throws ExecutionFileStorageException {
         boolean success = false;
         logger.log(Level.FINE, "Storing content to S3 bucket {0} path {1}", new Object[]{getBucket(),
-                expandedPath});
+                resolvedFilepath(expandedPath, filetype)});
         ObjectMetadata objectMetadata = createObjectMetadata(length, lastModified);
-        PutObjectRequest putObjectRequest = new PutObjectRequest(getBucket(), expandedPath, stream, objectMetadata);
+        PutObjectRequest putObjectRequest = new PutObjectRequest(getBucket(), resolvedFilepath(expandedPath, filetype), stream, objectMetadata);
         try {
             PutObjectResult putObjectResult = amazonS3.putObject(putObjectRequest);
             success = true;
         } catch (AmazonClientException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
-            throw new LogFileStorageException(e.getMessage(), e);
+            throw new ExecutionFileStorageException(e.getMessage(), e);
         }
         return success;
     }
@@ -252,11 +252,11 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
     }
 
 
-    public boolean retrieve(OutputStream stream) throws IOException, LogFileStorageException {
+    public boolean retrieve(final String filetype, OutputStream stream) throws IOException, ExecutionFileStorageException {
         S3Object object = null;
         boolean success = false;
         try {
-            object = amazonS3.getObject(getBucket(), expandedPath);
+            object = amazonS3.getObject(getBucket(), resolvedFilepath(expandedPath, filetype));
             S3ObjectInputStream objectContent = object.getObjectContent();
             try {
                 Streams.copyStream(objectContent, stream);
@@ -266,13 +266,13 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
             }
         } catch (AmazonClientException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
-            throw new LogFileStorageException(e.getMessage(), e);
+            throw new ExecutionFileStorageException(e.getMessage(), e);
         }
 
         return success;
     }
 
-    public static void main(String[] args) throws IOException, LogFileStorageException {
+    public static void main(String[] args) throws IOException, ExecutionFileStorageException {
         S3LogFileStoragePlugin s3LogFileStoragePlugin = new S3LogFileStoragePlugin();
         String action = args[0];
         Map<String, Object> context = new HashMap<String, Object>();
@@ -291,13 +291,15 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
 
         s3LogFileStoragePlugin.initialize(context);
 
+        String filetype = ".rdlog";
+
         if ("store".equals(action)) {
             File file = new File(args[3]);
-            s3LogFileStoragePlugin.store(new FileInputStream(file), file.length(), new Date(file.lastModified()));
+            s3LogFileStoragePlugin.store(filetype, new FileInputStream(file), file.length(), new Date(file.lastModified()));
         } else if ("retrieve".equals(action)) {
-            s3LogFileStoragePlugin.retrieve(new FileOutputStream(new File(args[3])));
+            s3LogFileStoragePlugin.retrieve(filetype, new FileOutputStream(new File(args[3])));
         } else if ("state".equals(action)) {
-            System.out.println("available? " + s3LogFileStoragePlugin.isAvailable());
+            System.out.println("available? " + s3LogFileStoragePlugin.isAvailable(filetype));
         }
     }
 
@@ -348,5 +350,9 @@ public class S3LogFileStoragePlugin implements LogFileStoragePlugin, AWSCredenti
 
     public void setAWSCredentialsFile(String AWSCredentialsFile) {
         this.AWSCredentialsFile = AWSCredentialsFile;
+    }
+
+    private String resolvedFilepath(final String path, final String filetype) {
+        return path + "." + filetype;
     }
 }
