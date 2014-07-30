@@ -11,7 +11,7 @@ log files, for backup or for cloud-friendly behavior.
 
 Copy the `rundeck-s3-log-plugin-x.y.jar` file to the `libext/` directory inside your Rundeck installation.
 
-Enable the LogFileStorage provider named `org.rundeck.amazon-s3` in your `rundeck-config` file:
+Enable the ExecutionFileStorage provider named `org.rundeck.amazon-s3` in your `rundeck-config` file:
 
     rundeck.execution.logs.fileStoragePlugin=org.rundeck.amazon-s3
 
@@ -55,20 +55,20 @@ Variables in the `path` value include:
 `region` : AWS region name to use. Default: `us-east-1`
 
 You can define the configuration values in `framework.properties` by prefixing the property name with the stem:
- `framework.plugin.LogFileStorage.org.rundeck.amazon-s3.`.  Or in a project's project.properties file with the stem
- `project.plugin.LogFileStorage.org.rundeck.amazon-s3.`.
+ `framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.`.  Or in a project's project.properties file with the stem
+ `project.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.`.
 
 For example:
 
     #AWSAccessKeyId and AWSSecretKey can be specified in the file
-    framework.plugin.LogFileStorage.org.rundeck.amazon-s3.AWSAccessKeyId=ABC123...
-    framework.plugin.LogFileStorage.org.rundeck.amazon-s3.AWSSecretKey=ABC321...
+    framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.AWSAccessKeyId=ABC123...
+    framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.AWSSecretKey=ABC321...
 
     #alternately, AWSCredentialsFile can point to a file which contains `accessKey` and `secretKey`
-    framework.plugin.LogFileStorage.org.rundeck.amazon-s3.AWSCredentialsFile=/path/to/awscredentials.properties
+    framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.AWSCredentialsFile=/path/to/awscredentials.properties
 
     #name of the bucket
-    framework.plugin.LogFileStorage.org.rundeck.amazon-s3.bucket=test-rundeck-logs
+    framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.bucket=test-rundeck-logs
 
     #path to store the logs
-    framework.plugin.LogFileStorage.org.rundeck.amazon-s3.path=logs/${job.project}/${job.execid}.log
+    framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.path=logs/${job.project}/${job.execid}.log
