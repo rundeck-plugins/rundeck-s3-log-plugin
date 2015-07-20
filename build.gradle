@@ -13,7 +13,6 @@ ext.pluginClassNames='org.rundeck.plugins.S3LogFileStoragePlugin'
 
 
 repositories {
-    mavenLocal()
     mavenCentral()
 
     maven {
