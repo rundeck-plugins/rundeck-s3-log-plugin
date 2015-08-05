@@ -72,3 +72,12 @@ For example:
 
     #path to store the logs
     framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.path=logs/${job.project}/${job.execid}.log
+
+## Using with Rundeck SSL Configuration
+
+If you want to use this plugin when you have Rundeck configured with a custom SSL truststore, you will need to import the Amazon S3 SSL certificates to your truststore.
+
+~~~
+echo -n | openssl s_client -connect my-bucket.s3.amazonaws.com:443 > certs.out
+keytool -importcert -trustcacerts -file certs.out -alias s3-amazonaws -keystore $RDECK_BASE/etc/truststore
+~~~
