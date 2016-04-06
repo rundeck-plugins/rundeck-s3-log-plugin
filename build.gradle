@@ -1,4 +1,4 @@
-version = '1.0.0'
+version = '1.0.1'
 defaultTasks 'clean','build'
 apply plugin: 'java'
 apply plugin: 'idea'
@@ -44,7 +44,7 @@ dependencies {
     // add any third-party jar dependencies you wish to include in the plugin
     // using the `pluginLibs` configuration as shown here:
     
-    pluginLibs group: 'com.amazonaws', name: 'aws-java-sdk', version: '1.4.5'
+    pluginLibs group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.10.67'
     
     
     //the compile dependency won't add the rundeck-core jar to the plugin contents
