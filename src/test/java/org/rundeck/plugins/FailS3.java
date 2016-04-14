@@ -4,7 +4,6 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.HttpMethod;
-import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.S3ResponseMetadata;
@@ -22,26 +21,23 @@ import java.util.List;
 */
 class FailS3 implements AmazonS3 {
 
-    public void setRegion(Region region) throws IllegalArgumentException {
-        Assert.fail("unexpected");
-    }
-
     public void setEndpoint(String endpoint) {
         Assert.fail("unexpected");
     }
 
+    public void setRegion(com.amazonaws.regions.Region region) throws IllegalArgumentException {
+        Assert.fail("unexpected");
+    }
 
     public void setS3ClientOptions(S3ClientOptions clientOptions) {
         Assert.fail("unexpected");
     }
 
-    public void changeObjectStorageClass(String bucketName, String key, StorageClass newStorageClass) throws
-            AmazonClientException, AmazonServiceException {
+    public void changeObjectStorageClass(String bucketName, String key, StorageClass newStorageClass) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public void setObjectRedirectLocation(String bucketName, String key, String newRedirectLocation) throws
-            AmazonClientException, AmazonServiceException {
+    public void setObjectRedirectLocation(String bucketName, String key, String newRedirectLocation) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
@@ -50,45 +46,47 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public ObjectListing listObjects(String bucketName, String prefix) throws AmazonClientException,
-            AmazonServiceException {
+    public ObjectListing listObjects(String bucketName, String prefix) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public ObjectListing listObjects(ListObjectsRequest listObjectsRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public ObjectListing listObjects(ListObjectsRequest listObjectsRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public ObjectListing listNextBatchOfObjects(ObjectListing previousObjectListing) throws
-            AmazonClientException, AmazonServiceException {
+    public ObjectListing listNextBatchOfObjects(ObjectListing previousObjectListing) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public VersionListing listVersions(String bucketName, String prefix) throws AmazonClientException,
-            AmazonServiceException {
+    public ObjectListing listNextBatchOfObjects(ListNextBatchOfObjectsRequest listNextBatchOfObjectsRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public VersionListing listNextBatchOfVersions(VersionListing previousVersionListing) throws
-            AmazonClientException, AmazonServiceException {
+    public VersionListing listVersions(String bucketName, String prefix) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public VersionListing listVersions(String bucketName, String prefix, String keyMarker,
-            String versionIdMarker, String delimiter, Integer maxResults) throws AmazonClientException,
-            AmazonServiceException {
+    public VersionListing listNextBatchOfVersions(VersionListing previousVersionListing) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public VersionListing listVersions(ListVersionsRequest listVersionsRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public VersionListing listNextBatchOfVersions(ListNextBatchOfVersionsRequest listNextBatchOfVersionsRequest) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+        return null;
+    }
+
+    public VersionListing listVersions(String bucketName, String prefix, String keyMarker, String versionIdMarker, String delimiter, Integer maxResults) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+        return null;
+    }
+
+    public VersionListing listVersions(ListVersionsRequest listVersionsRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
@@ -98,9 +96,19 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
+    public Owner getS3AccountOwner(GetS3AccountOwnerRequest getS3AccountOwnerRequest) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+        return null;
+    }
+
     public boolean doesBucketExist(String bucketName) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return false;
+    }
+
+    public HeadBucketResult headBucket(HeadBucketRequest headBucketRequest) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+        return null;
     }
 
     public List<Bucket> listBuckets() throws AmazonClientException, AmazonServiceException {
@@ -108,8 +116,7 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public List<Bucket> listBuckets(ListBucketsRequest listBucketsRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public List<Bucket> listBuckets(ListBucketsRequest listBucketsRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
@@ -119,14 +126,12 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public String getBucketLocation(GetBucketLocationRequest getBucketLocationRequest) throws
-            AmazonClientException, AmazonServiceException {
+    public String getBucketLocation(GetBucketLocationRequest getBucketLocationRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public Bucket createBucket(CreateBucketRequest createBucketRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public Bucket createBucket(CreateBucketRequest createBucketRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
@@ -136,47 +141,48 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public Bucket createBucket(String bucketName, com.amazonaws.services.s3.model.Region region) throws
-            AmazonClientException, AmazonServiceException {
+    public Bucket createBucket(String bucketName, Region region) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public Bucket createBucket(String bucketName, String region) throws AmazonClientException,
-            AmazonServiceException {
+    public Bucket createBucket(String bucketName, String region) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public AccessControlList getObjectAcl(String bucketName, String key) throws AmazonClientException,
-            AmazonServiceException {
+    public AccessControlList getObjectAcl(String bucketName, String key) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public AccessControlList getObjectAcl(String bucketName, String key,
-            String versionId) throws AmazonClientException, AmazonServiceException {
+    public AccessControlList getObjectAcl(String bucketName, String key, String versionId) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public void setObjectAcl(String bucketName, String key, AccessControlList acl) throws AmazonClientException,
-            AmazonServiceException {
+    public AccessControlList getObjectAcl(GetObjectAclRequest getObjectAclRequest) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+        return null;
+    }
+
+    public void setObjectAcl(String bucketName, String key, AccessControlList acl) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public void setObjectAcl(String bucketName, String key, CannedAccessControlList acl) throws
-            AmazonClientException, AmazonServiceException {
+    public void setObjectAcl(String bucketName, String key, CannedAccessControlList acl) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public void setObjectAcl(String bucketName, String key, String versionId,
-            AccessControlList acl) throws AmazonClientException, AmazonServiceException {
+    public void setObjectAcl(String bucketName, String key, String versionId, AccessControlList acl) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public void setObjectAcl(String bucketName, String key, String versionId, CannedAccessControlList acl) throws
-            AmazonClientException, AmazonServiceException {
+    public void setObjectAcl(String bucketName, String key, String versionId, CannedAccessControlList acl) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+    }
+
+    public void setObjectAcl(SetObjectAclRequest setObjectAclRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
@@ -185,35 +191,29 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public void setBucketAcl(SetBucketAclRequest setBucketAclRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public void setBucketAcl(SetBucketAclRequest setBucketAclRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public AccessControlList getBucketAcl(GetBucketAclRequest getBucketAclRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public AccessControlList getBucketAcl(GetBucketAclRequest getBucketAclRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public void setBucketAcl(String bucketName, AccessControlList acl) throws AmazonClientException,
-            AmazonServiceException {
+    public void setBucketAcl(String bucketName, AccessControlList acl) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public void setBucketAcl(String bucketName, CannedAccessControlList acl) throws AmazonClientException,
-            AmazonServiceException {
+    public void setBucketAcl(String bucketName, CannedAccessControlList acl) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public ObjectMetadata getObjectMetadata(String bucketName, String key) throws AmazonClientException,
-            AmazonServiceException {
+    public ObjectMetadata getObjectMetadata(String bucketName, String key) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public ObjectMetadata getObjectMetadata(GetObjectMetadataRequest getObjectMetadataRequest) throws
-            AmazonClientException, AmazonServiceException {
+    public ObjectMetadata getObjectMetadata(GetObjectMetadataRequest getObjectMetadataRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
@@ -223,20 +223,17 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public S3Object getObject(GetObjectRequest getObjectRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public S3Object getObject(GetObjectRequest getObjectRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public ObjectMetadata getObject(GetObjectRequest getObjectRequest,
-            File destinationFile) throws AmazonClientException, AmazonServiceException {
+    public ObjectMetadata getObject(GetObjectRequest getObjectRequest, File destinationFile) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public void deleteBucket(DeleteBucketRequest deleteBucketRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public void deleteBucket(DeleteBucketRequest deleteBucketRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
@@ -244,38 +241,32 @@ class FailS3 implements AmazonS3 {
         Assert.fail("unexpected");
     }
 
-    public PutObjectResult putObject(PutObjectRequest putObjectRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public PutObjectResult putObject(PutObjectRequest putObjectRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public PutObjectResult putObject(String bucketName, String key, File file) throws AmazonClientException,
-            AmazonServiceException {
+    public PutObjectResult putObject(String bucketName, String key, File file) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public PutObjectResult putObject(String bucketName, String key, InputStream input, ObjectMetadata metadata)
-            throws AmazonClientException, AmazonServiceException {
+    public PutObjectResult putObject(String bucketName, String key, InputStream input, ObjectMetadata metadata) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public CopyObjectResult copyObject(String sourceBucketName, String sourceKey, String destinationBucketName,
-            String destinationKey) throws AmazonClientException, AmazonServiceException {
+    public CopyObjectResult copyObject(String sourceBucketName, String sourceKey, String destinationBucketName, String destinationKey) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public CopyObjectResult copyObject(CopyObjectRequest copyObjectRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public CopyObjectResult copyObject(CopyObjectRequest copyObjectRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public CopyPartResult copyPart(CopyPartRequest copyPartRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public CopyPartResult copyPart(CopyPartRequest copyPartRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
@@ -284,45 +275,48 @@ class FailS3 implements AmazonS3 {
         Assert.fail("unexpected");
     }
 
-    public void deleteObject(DeleteObjectRequest deleteObjectRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public void deleteObject(DeleteObjectRequest deleteObjectRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public DeleteObjectsResult deleteObjects(DeleteObjectsRequest deleteObjectsRequest) throws
-            AmazonClientException, AmazonServiceException {
-        return null;
-    }
-
-    public void deleteVersion(String bucketName, String key, String versionId) throws AmazonClientException,
-            AmazonServiceException {
-        Assert.fail("unexpected");
-    }
-
-    public void deleteVersion(DeleteVersionRequest deleteVersionRequest) throws AmazonClientException,
-            AmazonServiceException {
-        Assert.fail("unexpected");
-    }
-
-    public BucketLoggingConfiguration getBucketLoggingConfiguration(String bucketName) throws
-            AmazonClientException, AmazonServiceException {
+    public DeleteObjectsResult deleteObjects(DeleteObjectsRequest deleteObjectsRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public void setBucketLoggingConfiguration(SetBucketLoggingConfigurationRequest
-            setBucketLoggingConfigurationRequest) throws AmazonClientException, AmazonServiceException {
+    public void deleteVersion(String bucketName, String key, String versionId) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public BucketVersioningConfiguration getBucketVersioningConfiguration(String bucketName) throws
-            AmazonClientException, AmazonServiceException {
+    public void deleteVersion(DeleteVersionRequest deleteVersionRequest) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+    }
+
+    public BucketLoggingConfiguration getBucketLoggingConfiguration(String bucketName) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public void setBucketVersioningConfiguration(SetBucketVersioningConfigurationRequest
-            setBucketVersioningConfigurationRequest) throws AmazonClientException, AmazonServiceException {
+    public BucketLoggingConfiguration getBucketLoggingConfiguration(GetBucketLoggingConfigurationRequest getBucketLoggingConfigurationRequest) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+        return null;
+    }
+
+    public void setBucketLoggingConfiguration(SetBucketLoggingConfigurationRequest setBucketLoggingConfigurationRequest) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+    }
+
+    public BucketVersioningConfiguration getBucketVersioningConfiguration(String bucketName) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+        return null;
+    }
+
+    public BucketVersioningConfiguration getBucketVersioningConfiguration(GetBucketVersioningConfigurationRequest getBucketVersioningConfigurationRequest) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+        return null;
+    }
+
+    public void setBucketVersioningConfiguration(SetBucketVersioningConfigurationRequest setBucketVersioningConfigurationRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
@@ -331,12 +325,24 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public void setBucketLifecycleConfiguration(String bucketName, BucketLifecycleConfiguration
-            bucketLifecycleConfiguration) {
+    public BucketLifecycleConfiguration getBucketLifecycleConfiguration(GetBucketLifecycleConfigurationRequest getBucketLifecycleConfigurationRequest) {
+        Assert.fail("unexpected");
+        return null;
+    }
+
+    public void setBucketLifecycleConfiguration(String bucketName, BucketLifecycleConfiguration bucketLifecycleConfiguration) {
+        Assert.fail("unexpected");
+    }
+
+    public void setBucketLifecycleConfiguration(SetBucketLifecycleConfigurationRequest setBucketLifecycleConfigurationRequest) {
         Assert.fail("unexpected");
     }
 
     public void deleteBucketLifecycleConfiguration(String bucketName) {
+        Assert.fail("unexpected");
+    }
+
+    public void deleteBucketLifecycleConfiguration(DeleteBucketLifecycleConfigurationRequest deleteBucketLifecycleConfigurationRequest) {
         Assert.fail("unexpected");
     }
 
@@ -345,12 +351,24 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public void setBucketCrossOriginConfiguration(String bucketName, BucketCrossOriginConfiguration
-            bucketCrossOriginConfiguration) {
+    public BucketCrossOriginConfiguration getBucketCrossOriginConfiguration(GetBucketCrossOriginConfigurationRequest getBucketCrossOriginConfigurationRequest) {
+        Assert.fail("unexpected");
+        return null;
+    }
+
+    public void setBucketCrossOriginConfiguration(String bucketName, BucketCrossOriginConfiguration bucketCrossOriginConfiguration) {
+        Assert.fail("unexpected");
+    }
+
+    public void setBucketCrossOriginConfiguration(SetBucketCrossOriginConfigurationRequest setBucketCrossOriginConfigurationRequest) {
         Assert.fail("unexpected");
     }
 
     public void deleteBucketCrossOriginConfiguration(String bucketName) {
+        Assert.fail("unexpected");
+    }
+
+    public void deleteBucketCrossOriginConfiguration(DeleteBucketCrossOriginConfigurationRequest deleteBucketCrossOriginConfigurationRequest) {
         Assert.fail("unexpected");
     }
 
@@ -359,8 +377,16 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public void setBucketTaggingConfiguration(String bucketName, BucketTaggingConfiguration
-            bucketTaggingConfiguration) {
+    public BucketTaggingConfiguration getBucketTaggingConfiguration(GetBucketTaggingConfigurationRequest getBucketTaggingConfigurationRequest) {
+        Assert.fail("unexpected");
+        return null;
+    }
+
+    public void setBucketTaggingConfiguration(String bucketName, BucketTaggingConfiguration bucketTaggingConfiguration) {
+        Assert.fail("unexpected");
+    }
+
+    public void setBucketTaggingConfiguration(SetBucketTaggingConfigurationRequest setBucketTaggingConfigurationRequest) {
         Assert.fail("unexpected");
     }
 
@@ -368,46 +394,51 @@ class FailS3 implements AmazonS3 {
         Assert.fail("unexpected");
     }
 
-    public BucketNotificationConfiguration getBucketNotificationConfiguration(String bucketName) throws
-            AmazonClientException, AmazonServiceException {
+    public void deleteBucketTaggingConfiguration(DeleteBucketTaggingConfigurationRequest deleteBucketTaggingConfigurationRequest) {
+        Assert.fail("unexpected");
+    }
+
+    public BucketNotificationConfiguration getBucketNotificationConfiguration(String bucketName) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public void setBucketNotificationConfiguration(String bucketName, BucketNotificationConfiguration
-            bucketNotificationConfiguration) throws AmazonClientException, AmazonServiceException {
-        Assert.fail("unexpected");
-    }
-
-    public BucketWebsiteConfiguration getBucketWebsiteConfiguration(String bucketName) throws
-            AmazonClientException, AmazonServiceException {
+    public BucketNotificationConfiguration getBucketNotificationConfiguration(GetBucketNotificationConfigurationRequest getBucketNotificationConfigurationRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public BucketWebsiteConfiguration getBucketWebsiteConfiguration(GetBucketWebsiteConfigurationRequest
-            getBucketWebsiteConfigurationRequest) throws AmazonClientException, AmazonServiceException {
+    public void setBucketNotificationConfiguration(SetBucketNotificationConfigurationRequest setBucketNotificationConfigurationRequest) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+    }
+
+    public void setBucketNotificationConfiguration(String bucketName, BucketNotificationConfiguration bucketNotificationConfiguration) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+    }
+
+    public BucketWebsiteConfiguration getBucketWebsiteConfiguration(String bucketName) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public void setBucketWebsiteConfiguration(String bucketName, BucketWebsiteConfiguration configuration) throws
-            AmazonClientException, AmazonServiceException {
+    public BucketWebsiteConfiguration getBucketWebsiteConfiguration(GetBucketWebsiteConfigurationRequest getBucketWebsiteConfigurationRequest) throws AmazonClientException, AmazonServiceException {
+        Assert.fail("unexpected");
+        return null;
+    }
+
+    public void setBucketWebsiteConfiguration(String bucketName, BucketWebsiteConfiguration configuration) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public void setBucketWebsiteConfiguration(SetBucketWebsiteConfigurationRequest
-            setBucketWebsiteConfigurationRequest) throws AmazonClientException, AmazonServiceException {
+    public void setBucketWebsiteConfiguration(SetBucketWebsiteConfigurationRequest setBucketWebsiteConfigurationRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public void deleteBucketWebsiteConfiguration(String bucketName) throws AmazonClientException,
-            AmazonServiceException {
+    public void deleteBucketWebsiteConfiguration(String bucketName) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public void deleteBucketWebsiteConfiguration(DeleteBucketWebsiteConfigurationRequest
-            deleteBucketWebsiteConfigurationRequest) throws AmazonClientException, AmazonServiceException {
+    public void deleteBucketWebsiteConfiguration(DeleteBucketWebsiteConfigurationRequest deleteBucketWebsiteConfigurationRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
@@ -416,19 +447,16 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public BucketPolicy getBucketPolicy(GetBucketPolicyRequest getBucketPolicyRequest) throws
-            AmazonClientException, AmazonServiceException {
+    public BucketPolicy getBucketPolicy(GetBucketPolicyRequest getBucketPolicyRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public void setBucketPolicy(String bucketName, String policyText) throws AmazonClientException,
-            AmazonServiceException {
+    public void setBucketPolicy(String bucketName, String policyText) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public void setBucketPolicy(SetBucketPolicyRequest setBucketPolicyRequest) throws AmazonClientException,
-            AmazonServiceException {
+    public void setBucketPolicy(SetBucketPolicyRequest setBucketPolicyRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
@@ -436,8 +464,7 @@ class FailS3 implements AmazonS3 {
         Assert.fail("unexpected");
     }
 
-    public void deleteBucketPolicy(DeleteBucketPolicyRequest deleteBucketPolicyRequest) throws
-            AmazonClientException, AmazonServiceException {
+    public void deleteBucketPolicy(DeleteBucketPolicyRequest deleteBucketPolicyRequest) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
@@ -446,26 +473,22 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public URL generatePresignedUrl(String bucketName, String key, Date expiration,
-            HttpMethod method) throws AmazonClientException {
+    public URL generatePresignedUrl(String bucketName, String key, Date expiration, HttpMethod method) throws AmazonClientException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public URL generatePresignedUrl(GeneratePresignedUrlRequest generatePresignedUrlRequest) throws
-            AmazonClientException {
+    public URL generatePresignedUrl(GeneratePresignedUrlRequest generatePresignedUrlRequest) throws AmazonClientException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public InitiateMultipartUploadResult initiateMultipartUpload(InitiateMultipartUploadRequest request) throws
-            AmazonClientException, AmazonServiceException {
+    public InitiateMultipartUploadResult initiateMultipartUpload(InitiateMultipartUploadRequest request) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public UploadPartResult uploadPart(UploadPartRequest request) throws AmazonClientException,
-            AmazonServiceException {
+    public UploadPartResult uploadPart(UploadPartRequest request) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
@@ -475,19 +498,16 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public void abortMultipartUpload(AbortMultipartUploadRequest request) throws AmazonClientException,
-            AmazonServiceException {
+    public void abortMultipartUpload(AbortMultipartUploadRequest request) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
     }
 
-    public CompleteMultipartUploadResult completeMultipartUpload(CompleteMultipartUploadRequest request) throws
-            AmazonClientException, AmazonServiceException {
+    public CompleteMultipartUploadResult completeMultipartUpload(CompleteMultipartUploadRequest request) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
 
-    public MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest request) throws
-            AmazonClientException, AmazonServiceException {
+    public MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest request) throws AmazonClientException, AmazonServiceException {
         Assert.fail("unexpected");
         return null;
     }
@@ -497,7 +517,7 @@ class FailS3 implements AmazonS3 {
         return null;
     }
 
-    public void restoreObject(RestoreObjectRequest copyGlacierObjectRequest) throws AmazonServiceException {
+    public void restoreObject(RestoreObjectRequest request) throws AmazonServiceException {
         Assert.fail("unexpected");
     }
 
@@ -505,4 +525,47 @@ class FailS3 implements AmazonS3 {
         Assert.fail("unexpected");
     }
 
+    public void enableRequesterPays(String bucketName) throws AmazonServiceException, AmazonClientException {
+        Assert.fail("unexpected");
+    }
+
+    public void disableRequesterPays(String bucketName) throws AmazonServiceException, AmazonClientException {
+        Assert.fail("unexpected");
+    }
+
+    public boolean isRequesterPaysEnabled(String bucketName) throws AmazonServiceException, AmazonClientException {
+        Assert.fail("unexpected");
+        return false;
+    }
+
+    public void setBucketReplicationConfiguration(String bucketName, BucketReplicationConfiguration configuration) throws AmazonServiceException, AmazonClientException {
+        Assert.fail("unexpected");
+    }
+
+    public void setBucketReplicationConfiguration(SetBucketReplicationConfigurationRequest setBucketReplicationConfigurationRequest) throws AmazonServiceException, AmazonClientException {
+        Assert.fail("unexpected");
+    }
+
+    public BucketReplicationConfiguration getBucketReplicationConfiguration(String bucketName) throws AmazonServiceException, AmazonClientException {
+        Assert.fail("unexpected");
+        return null;
+    }
+
+    public BucketReplicationConfiguration getBucketReplicationConfiguration(GetBucketReplicationConfigurationRequest getBucketReplicationConfigurationRequest) throws AmazonServiceException, AmazonClientException {
+        Assert.fail("unexpected");
+        return null;
+    }
+
+    public void deleteBucketReplicationConfiguration(String bucketName) throws AmazonServiceException, AmazonClientException {
+        Assert.fail("unexpected");
+    }
+
+    public void deleteBucketReplicationConfiguration(DeleteBucketReplicationConfigurationRequest request) throws AmazonServiceException, AmazonClientException {
+        Assert.fail("unexpected");
+    }
+
+    public boolean doesObjectExist(String bucketName, String objectName) throws AmazonServiceException, AmazonClientException {
+        Assert.fail("unexpected");
+        return false;
+    }
 }

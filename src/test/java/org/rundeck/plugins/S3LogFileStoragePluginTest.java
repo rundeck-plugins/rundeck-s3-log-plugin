@@ -465,7 +465,7 @@ public class S3LogFileStoragePluginTest {
             testPlugin.isAvailable(DEFAULT_FILETYPE);
             Assert.fail("Should throw");
         } catch (ExecutionFileStorageException e) {
-            Assert.assertEquals("blah", e.getMessage());
+            Assert.assertEquals("blah (Service: null; Status Code: 0; Error Code: null; Request ID: requestId)", e.getMessage());
         }
     }
 
@@ -504,7 +504,7 @@ public class S3LogFileStoragePluginTest {
             result = testPlugin.store(DEFAULT_FILETYPE, null, 0, null);
             Assert.fail("should throw");
         } catch (ExecutionFileStorageException e) {
-            Assert.assertEquals("putObject", e.getMessage());
+            Assert.assertEquals("putObject (Service: null; Status Code: 0; Error Code: null; Request ID: null)", e.getMessage());
         }
         Assert.assertFalse(result);
     }
@@ -627,7 +627,7 @@ public class S3LogFileStoragePluginTest {
             result = testPlugin.retrieve(DEFAULT_FILETYPE, stream);
             Assert.fail("should throw");
         } catch (ExecutionFileStorageException e) {
-            Assert.assertEquals("getObject", e.getMessage());
+            Assert.assertEquals("getObject (Service: null; Status Code: 0; Error Code: null; Request ID: null)", e.getMessage());
         }
         Assert.assertFalse(result);
         Assert.assertEquals("testBucket", testPlugin.getTestS3().getObjectBucketName);
