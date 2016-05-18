@@ -77,6 +77,7 @@ public class S3LogFileStoragePluginTest {
     class testS3 extends FailS3 {
         AWSCredentials creds;
         private Region region;
+        private String endpoint;
         private S3Object getObject;
 
         testS3(AWSCredentials creds) {
@@ -157,6 +158,15 @@ public class S3LogFileStoragePluginTest {
         public void setRegion(Region region) {
             this.region = region;
         }
+
+        public String getEndpoint() {
+            return endpoint;
+        }
+
+        public void setEndpoint(String endpoint) {
+            this.endpoint = endpoint;
+        }
+
     }
 
     class testPlugin extends S3LogFileStoragePlugin {
@@ -333,6 +343,27 @@ public class S3LogFileStoragePluginTest {
         } catch (IllegalArgumentException e) {
             Assert.assertTrue(e.getMessage().contains("Region was not found"));
         }
+    }
+
+    @Test
+    public void initializeEndpoint() {
+        testPlugin testPlugin = new S3LogFileStoragePluginTest.testPlugin();
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.setBucket("testBucket");
+        testPlugin.setEndpoint("localhost");
+        testPlugin.initialize(testContext());
+        Assert.assertEquals("localhost", testPlugin.getTestS3().getEndpoint());
+    }
+
+    @Test
+    public void initializeEndpointDefault() {
+        testPlugin testPlugin = new S3LogFileStoragePluginTest.testPlugin();
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.setBucket("testBucket");
+        testPlugin.initialize(testContext());
+        Assert.assertNull(testPlugin.getTestS3().getEndpoint());
     }
 
     @Test
