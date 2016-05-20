@@ -71,10 +71,17 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
 
     @PluginProperty(
             title = "S3 Endpoint",
-            description = "S3 endpoint to connect to.",
+            description = "S3 endpoint to connect to, the region is ignored if this is set.",
             required = false,
             defaultValue = "")
     private String endpoint;
+
+    @PluginProperty(
+            title = "Force Signature v4",
+            description = "Whether to force use of Signature Version 4 authentication. Default: false",
+            required = false,
+            defaultValue = "false")
+    private String forceSigV4;
 
     private String expandedPath;
 
@@ -115,10 +122,13 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             throw new IllegalArgumentException("Region was not found: " + getRegion());
         }
 
+        if (isSignatureV4Enforced()) {
+            System.setProperty(SDKGlobalConfiguration.ENFORCE_S3_SIGV4_SYSTEM_PROPERTY, "true");
+        }
+
         if (null == getEndpoint() || "".equals(getEndpoint().trim())) {
             amazonS3.setRegion(awsregion);
         } else {
-            System.setProperty(SDKGlobalConfiguration.ENFORCE_S3_SIGV4_SYSTEM_PROPERTY, "true");
             amazonS3.setEndpoint(getEndpoint());
         }
 
@@ -369,6 +379,17 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
 
     public void setEndpoint(String endpoint) {
         this.endpoint = endpoint;
+    }
+
+    public boolean isSignatureV4Enforced() {
+        if (this.forceSigV4 != null && "true".equals(forceSigV4)) {
+            return true;
+        }
+        return false;
+    }
+
+    public void setForceSignatureV4(String forceSigV4) {
+        this.forceSigV4 = forceSigV4;
     }
 
     private String resolvedFilepath(final String path, final String filetype) {
