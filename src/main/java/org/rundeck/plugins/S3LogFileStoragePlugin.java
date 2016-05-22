@@ -8,8 +8,8 @@ import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.*;
+import com.amazonaws.SDKGlobalConfiguration;
 import com.dtolabs.rundeck.core.logging.ExecutionFileStorageException;
-import com.dtolabs.rundeck.core.logging.LogFileState;
 import com.dtolabs.rundeck.core.plugins.Plugin;
 import com.dtolabs.rundeck.plugins.ServiceNameConstants;
 import com.dtolabs.rundeck.plugins.descriptions.PluginDescription;
@@ -69,6 +69,20 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             defaultValue = DEFAULT_REGION)
     private String region;
 
+    @PluginProperty(
+            title = "S3 Endpoint",
+            description = "S3 endpoint to connect to, the region is ignored if this is set.",
+            required = false,
+            defaultValue = "")
+    private String endpoint;
+
+    @PluginProperty(
+            title = "Force Signature v4",
+            description = "Whether to force use of Signature Version 4 authentication. Default: false",
+            required = false,
+            defaultValue = "false")
+    private String forceSigV4;
+
     private String expandedPath;
 
     public S3LogFileStoragePlugin() {
@@ -108,7 +122,16 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             throw new IllegalArgumentException("Region was not found: " + getRegion());
         }
 
-        amazonS3.setRegion(awsregion);
+        if (isSignatureV4Enforced()) {
+            System.setProperty(SDKGlobalConfiguration.ENFORCE_S3_SIGV4_SYSTEM_PROPERTY, "true");
+        }
+
+        if (null == getEndpoint() || "".equals(getEndpoint().trim())) {
+            amazonS3.setRegion(awsregion);
+        } else {
+            amazonS3.setEndpoint(getEndpoint());
+        }
+
         if (null == bucket || "".equals(bucket.trim())) {
             throw new IllegalArgumentException("bucket was not set");
         }
@@ -178,8 +201,6 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     }
 
     public boolean isAvailable(final String filetype) throws ExecutionFileStorageException {
-        LogFileState state = LogFileState.NOT_FOUND;
-
         GetObjectMetadataRequest getObjectRequest = new GetObjectMetadataRequest(getBucket(), resolvedFilepath(expandedPath, filetype));
         logger.log(Level.FINE, "getState for S3 bucket {0}:{1}", new Object[]{getBucket(), resolvedFilepath(expandedPath, filetype)});
         try {
@@ -223,7 +244,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         ObjectMetadata objectMetadata = createObjectMetadata(length, lastModified);
         PutObjectRequest putObjectRequest = new PutObjectRequest(getBucket(), resolvedFilepath(expandedPath, filetype), stream, objectMetadata);
         try {
-            PutObjectResult putObjectResult = amazonS3.putObject(putObjectRequest);
+            amazonS3.putObject(putObjectRequest);
             success = true;
         } catch (AmazonClientException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
@@ -264,6 +285,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             } finally {
                 objectContent.close();
             }
+
         } catch (AmazonClientException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
             throw new ExecutionFileStorageException(e.getMessage(), e);
@@ -288,6 +310,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         s3LogFileStoragePlugin.setBucket("test-rundeck-logs");
         s3LogFileStoragePlugin.setPath("logs/$PROJECT/$ID.log");
         s3LogFileStoragePlugin.setRegion("us-east-1");
+        s3LogFileStoragePlugin.setEndpoint("https://localhost");
 
         s3LogFileStoragePlugin.initialize(context);
 
@@ -350,6 +373,23 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
 
     public void setAWSCredentialsFile(String AWSCredentialsFile) {
         this.AWSCredentialsFile = AWSCredentialsFile;
+    }
+
+    public String getEndpoint() { return endpoint; }
+
+    public void setEndpoint(String endpoint) {
+        this.endpoint = endpoint;
+    }
+
+    public boolean isSignatureV4Enforced() {
+        if (this.forceSigV4 != null && "true".equals(forceSigV4)) {
+            return true;
+        }
+        return false;
+    }
+
+    public void setForceSignatureV4(String forceSigV4) {
+        this.forceSigV4 = forceSigV4;
     }
 
     private String resolvedFilepath(final String path, final String filetype) {

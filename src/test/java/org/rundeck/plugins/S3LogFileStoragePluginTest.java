@@ -2,6 +2,7 @@ package org.rundeck.plugins;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.SDKGlobalConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3;
@@ -77,6 +78,7 @@ public class S3LogFileStoragePluginTest {
     class testS3 extends FailS3 {
         AWSCredentials creds;
         private Region region;
+        private String endpoint;
         private S3Object getObject;
 
         testS3(AWSCredentials creds) {
@@ -157,6 +159,15 @@ public class S3LogFileStoragePluginTest {
         public void setRegion(Region region) {
             this.region = region;
         }
+
+        public String getEndpoint() {
+            return endpoint;
+        }
+
+        public void setEndpoint(String endpoint) {
+            this.endpoint = endpoint;
+        }
+
     }
 
     class testPlugin extends S3LogFileStoragePlugin {
@@ -333,6 +344,49 @@ public class S3LogFileStoragePluginTest {
         } catch (IllegalArgumentException e) {
             Assert.assertTrue(e.getMessage().contains("Region was not found"));
         }
+    }
+
+    @Test
+    public void initializeEndpoint() {
+        testPlugin testPlugin = new S3LogFileStoragePluginTest.testPlugin();
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.setBucket("testBucket");
+        testPlugin.setEndpoint("localhost");
+        testPlugin.initialize(testContext());
+        Assert.assertEquals("localhost", testPlugin.getTestS3().getEndpoint());
+    }
+
+    @Test
+    public void initializeEndpointDefault() {
+        testPlugin testPlugin = new S3LogFileStoragePluginTest.testPlugin();
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.setBucket("testBucket");
+        testPlugin.initialize(testContext());
+        Assert.assertNull(testPlugin.getTestS3().getEndpoint());
+    }
+
+    @Test
+    public void initializeDefaultSigVersion() {
+        testPlugin testPlugin = new S3LogFileStoragePluginTest.testPlugin();
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.setBucket("testBucket");
+        testPlugin.initialize(testContext());
+        Assert.assertNull(System.getProperty(SDKGlobalConfiguration.ENFORCE_S3_SIGV4_SYSTEM_PROPERTY));
+    }
+
+    @Test
+    public void initializeForceSigVersion() {
+        testPlugin testPlugin = new S3LogFileStoragePluginTest.testPlugin();
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.setBucket("testBucket");
+        testPlugin.setForceSignatureV4("true");
+        testPlugin.initialize(testContext());
+        Assert.assertEquals("true",
+                System.getProperty(SDKGlobalConfiguration.ENFORCE_S3_SIGV4_SYSTEM_PROPERTY));
     }
 
     @Test
