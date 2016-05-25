@@ -54,6 +54,8 @@ Variables in the `path` value include:
 
 `region` : AWS region name to use. Default: `us-east-1`
 
+`endpoint`: Optional, a custom S3 compatible endpoint to use, such as `https://my-host.com/s3`
+
 You can define the configuration values in `framework.properties` by prefixing the property name with the stem:
  `framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.`.  Or in a project's project.properties file with the stem
  `project.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.`.
