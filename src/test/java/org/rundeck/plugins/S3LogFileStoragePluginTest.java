@@ -6,6 +6,7 @@ import com.amazonaws.SDKGlobalConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.*;
 import com.dtolabs.rundeck.core.logging.ExecutionFileStorageException;
 import org.junit.Assert;
@@ -176,7 +177,7 @@ public class S3LogFileStoragePluginTest {
             setRegion(DEFAULT_REGION);
         }
 
-        private testS3 testS3;
+        testS3 testS3;
 
         @Override
         protected AmazonS3 createAmazonS3Client(AWSCredentials awsCredentials) {
@@ -387,6 +388,78 @@ public class S3LogFileStoragePluginTest {
         testPlugin.initialize(testContext());
         Assert.assertEquals("true",
                 System.getProperty(SDKGlobalConfiguration.ENFORCE_S3_SIGV4_SYSTEM_PROPERTY));
+    }
+
+    class OptionCaptureTestS3 extends testS3{
+        S3ClientOptions setOptions;
+        @Override
+        public void setS3ClientOptions(final S3ClientOptions clientOptions) {
+            setOptions=clientOptions;
+        }
+
+        public OptionCaptureTestS3(final AWSCredentials creds) {
+            super(creds);
+        }
+
+        public OptionCaptureTestS3() {
+        }
+    }
+    class OptionCaptureTestPlugin extends testPlugin{
+        public OptionCaptureTestPlugin() {
+            super();
+        }
+
+        @Override
+        protected AmazonS3 createAmazonS3Client(final AWSCredentials awsCredentials) {
+            if(testS3==null) {
+                testS3 = new OptionCaptureTestS3(awsCredentials);
+            }
+            return testS3;
+        }
+
+        @Override
+        protected AmazonS3 createAmazonS3Client() {
+            if(testS3==null) {
+                testS3 = new OptionCaptureTestS3();
+            }
+            return testS3;
+        }
+    }
+    @Test
+    public void initializeDefaultPathStyle() {
+        OptionCaptureTestPlugin testPlugin = new OptionCaptureTestPlugin();
+        OptionCaptureTestS3 testS3 = new OptionCaptureTestS3();
+        testPlugin.setTestS3(testS3);
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.setBucket("testBucket");
+        testPlugin.initialize(testContext());
+        Assert.assertNull(testS3.setOptions);
+    }
+    @Test
+    public void initializePathStyleFalse() {
+        OptionCaptureTestPlugin testPlugin = new OptionCaptureTestPlugin();
+        OptionCaptureTestS3 testS3 = new OptionCaptureTestS3();
+        testPlugin.setTestS3(testS3);
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.setBucket("testBucket");
+        testPlugin.setPathStyle(false);
+        testPlugin.initialize(testContext());
+        Assert.assertNull(testS3.setOptions);
+    }
+    @Test
+    public void initializeWithPathStyleTrue() {
+        OptionCaptureTestPlugin testPlugin = new OptionCaptureTestPlugin();
+        OptionCaptureTestS3 testS3 = new OptionCaptureTestS3();
+        testPlugin.setTestS3(testS3);
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.setBucket("testBucket");
+        testPlugin.setPathStyle(true);
+        testPlugin.initialize(testContext());
+        Assert.assertNotNull(testS3.setOptions);
+        Assert.assertTrue(testS3.setOptions.isPathStyleAccess());
     }
 
     @Test
