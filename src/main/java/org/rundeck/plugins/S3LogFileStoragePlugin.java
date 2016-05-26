@@ -7,6 +7,7 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.SDKGlobalConfiguration;
 import com.dtolabs.rundeck.core.logging.ExecutionFileStorageException;
@@ -83,6 +84,14 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             defaultValue = "false")
     private String forceSigV4;
 
+    @PluginProperty(
+            title = "Use Path Style",
+            description = "Whether to access the Endpoint using `endpoint/bucket` style, default: false. The default will " +
+                          "use DNS style `bucket.endpoint`, which may be incompatible with non-AWS S3-compatible services",
+            required = false,
+            defaultValue = "false")
+    private boolean pathStyle;
+
     private String expandedPath;
 
     public S3LogFileStoragePlugin() {
@@ -130,6 +139,11 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             amazonS3.setRegion(awsregion);
         } else {
             amazonS3.setEndpoint(getEndpoint());
+        }
+        if(isPathStyle()) {
+            S3ClientOptions clientOptions = new S3ClientOptions();
+            clientOptions.setPathStyleAccess(isPathStyle());
+            amazonS3.setS3ClientOptions(clientOptions);
         }
 
         if (null == bucket || "".equals(bucket.trim())) {
@@ -394,5 +408,13 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
 
     private String resolvedFilepath(final String path, final String filetype) {
         return path + "." + filetype;
+    }
+
+    public boolean isPathStyle() {
+        return pathStyle;
+    }
+
+    public void setPathStyle(boolean pathStyle) {
+        this.pathStyle = pathStyle;
     }
 }
