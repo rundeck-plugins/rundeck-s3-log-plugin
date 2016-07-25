@@ -56,6 +56,11 @@ Variables in the `path` value include:
 
 `endpoint`: Optional, a custom S3 compatible endpoint to use, such as `https://my-host.com/s3`
 
+`pathStyle`: Optional, boolean, default=False, set to True if you need to define the bucket in your S3 like endpoint URL. e.g https://<s3_like_end_point_url>/<your_bucket_name>
+ A custom way of defining buckets in your endpoint. Useful for non-AWS S3 like object storage technology e.g swift stack, Optums, etc. 
+ Background information http://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html. May be useful if you have an https endpoint URL. 
+
+
 You can define the configuration values in `framework.properties` by prefixing the property name with the stem:
  `framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.`.  Or in a project's project.properties file with the stem
  `project.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.`.
