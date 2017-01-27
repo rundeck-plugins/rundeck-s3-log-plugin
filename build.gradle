@@ -40,7 +40,6 @@ scmVersion {
 project.version = scmVersion.version
 
 repositories {
-    mavenLocal()
     mavenCentral()
 
     maven {
