@@ -10,6 +10,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.SDKGlobalConfiguration;
+import com.dtolabs.rundeck.core.dispatcher.DataContextUtils;
 import com.dtolabs.rundeck.core.logging.ExecutionFileStorageException;
 import com.dtolabs.rundeck.core.plugins.Plugin;
 import com.dtolabs.rundeck.plugins.ServiceNameConstants;
@@ -55,11 +56,16 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     @PluginProperty(
             title = "Path",
             required = true,
-            description = "The path in the bucket to store a log file. You can use these " +
-                    "expansion variables: (${job.execid} = execution ID, ${job.project} = project name, " +
-                    "${job.id} = job UUID (or blank)." +
-                    " Default: "
-                    + DEFAULT_PATH_FORMAT,
+            description = "The path in the bucket to store a log file. " +
+                          " Default: "
+                          + DEFAULT_PATH_FORMAT +
+                          "\n\nYou can use these expansion variables: \n\n" +
+                          "* `${job.execid}` = execution ID\n" +
+                          "* `${job.project}` = project name\n" +
+                          "* `${job.id}` = job UUID (or blank).\n" +
+                          "* `${job.group}` = job group (or blank).\n" +
+                          "* `${job.name}` = job name (or blank).\n" +
+                          "",
             defaultValue = DEFAULT_PATH_FORMAT)
     private String path;
 
@@ -92,7 +98,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             defaultValue = "false")
     private boolean pathStyle;
 
-    private String expandedPath;
+    protected String expandedPath;
 
     public S3LogFileStoragePlugin() {
     }
@@ -200,12 +206,24 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     static String expandPath(String pathFormat, Map<String, ? extends Object> context) {
         String result = pathFormat.replaceAll("^/+", "");
         if (null != context) {
-            result = result.replaceAll("\\$\\{job.execid\\}", notNull(context, "execid", ""));
-            result = result.replaceAll("\\$\\{job.id\\}", notNull(context, "id", ""));
-            result = result.replaceAll("\\$\\{job.project\\}", notNull(context, "project", ""));
+            result = DataContextUtils.replaceDataReferences(
+                    result,
+                    DataContextUtils.addContext("job", stringMap(context), new HashMap<String, Map<String, String>>()),
+                    null,
+                    false,
+                    true
+            );
         }
         result = result.replaceAll("/+", "/");
 
+        return result;
+    }
+
+    private static Map<String, String> stringMap(final Map<String, ?> context) {
+        HashMap<String, String> result = new HashMap<String, String>();
+        for (String s : context.keySet()) {
+            result.put(s, context.get(s).toString());
+        }
         return result;
     }
 
