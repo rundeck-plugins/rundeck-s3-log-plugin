@@ -76,6 +76,13 @@ public class S3LogFileStoragePluginTest {
         return stringHashMap;
     }
 
+    private HashMap<String, ?> testContext3() {
+        HashMap<String, Object> stringHashMap = new HashMap<String, Object>(testContext2());
+        stringHashMap.put("name", "jobname");
+        stringHashMap.put("group", "ajob group/another group/");
+        return stringHashMap;
+    }
+
     class testS3 extends FailS3 {
         AWSCredentials creds;
         private Region region;
@@ -189,6 +196,10 @@ public class S3LogFileStoragePluginTest {
         protected AmazonS3 createAmazonS3Client() {
             testS3 = new S3LogFileStoragePluginTest.testS3();
             return testS3;
+        }
+
+        public String getExpandedPath() {
+            return expandedPath;
         }
 
         public S3LogFileStoragePluginTest.testS3 getTestS3() {
@@ -568,6 +579,39 @@ public class S3LogFileStoragePluginTest {
         testPlugin.setAWSAccessKeyId("blah");
         testPlugin.setAWSSecretKey("blah");
         testPlugin.initialize(testContext());
+        Assert.assertEquals("blah/testexecid.blah", testPlugin.getExpandedPath());
+    }
+
+    @Test
+    public void initializePathJobGroupName() {
+        testPlugin testPlugin = new S3LogFileStoragePluginTest.testPlugin();
+        testPlugin.setBucket("basdf");
+        testPlugin.setPath("blah/${job.group}/${job.name}/${job.execid}.blah");
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.initialize(testContext3());
+        Assert.assertEquals("blah/ajob group/another group/jobname/testexecid.blah", testPlugin.getExpandedPath());
+    }
+
+    @Test
+    public void initializePathNoJobGroupName() {
+        testPlugin testPlugin = new S3LogFileStoragePluginTest.testPlugin();
+        testPlugin.setBucket("basdf");
+        testPlugin.setPath("blah/${job.group}/${job.name}/${job.execid}.blah");
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.initialize(testContext2());
+        Assert.assertEquals("blah/testexecid.blah", testPlugin.getExpandedPath());
+    }
+    @Test
+    public void initializePathNoJobId_GroupName() {
+        testPlugin testPlugin = new S3LogFileStoragePluginTest.testPlugin();
+        testPlugin.setBucket("basdf");
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.setPath("blah/${job.project}/${job.id}/${job.group}/${job.name}/${job.execid}.blah");
+        testPlugin.initialize(testContext());
+        Assert.assertEquals("blah/testproject/testexecid.blah", testPlugin.getExpandedPath());
     }
 
     @Test

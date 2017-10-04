@@ -51,6 +51,8 @@ Variables in the `path` value include:
 * `${job.execid}` - the execution ID
 * `${job.project}` - the project name
 * `${job.id}` - the Job UUID if it exists
+* `${job.group}` - the Job Group if it exists
+* `${job.path}` - the Job Name if it exists
 
 `region` : AWS region name to use. Default: `us-east-1`
 
