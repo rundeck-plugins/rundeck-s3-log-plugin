@@ -16,6 +16,7 @@ apply plugin: 'maven'
 
 sourceCompatibility = 1.8
 ext.rundeckPluginVersion= '1.2'
+ext.rundeckVersion='2.9.3'
 
 /**
  * Set this to a comma-separated list of full classnames of your implemented Rundeck
@@ -69,7 +70,7 @@ dependencies {
     
     
     //the compile dependency won't add the rundeck-core jar to the plugin contents
-    compile group: 'org.rundeck', name: 'rundeck-core', version: '2.2.0'
+    compile group: 'org.rundeck', name: 'rundeck-core', version: rundeckVersion
     testCompile group: 'junit', name:'junit', version: '4.11'
 }
 
@@ -89,7 +90,7 @@ jar {
         attributes 'Rundeck-Plugin-Version': rundeckPluginVersion, 'Rundeck-Plugin-Archive': 'true'
         attributes 'Rundeck-Plugin-Libs': "${libList}"
         attributes 'Main-Class': "org.rundeck.plugins.S3LogFileStoragePlugin"
-        attributes 'Class-Path': "${libList} lib/rundeck-core-1.5.4-SNAPSHOT.jar"
+        attributes 'Class-Path': "${libList} lib/rundeck-core-${rundeckVersion}.jar"
     }
 }
 //set jar task to depend on copyToLib
