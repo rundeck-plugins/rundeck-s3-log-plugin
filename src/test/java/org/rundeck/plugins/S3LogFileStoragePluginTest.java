@@ -4,7 +4,6 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SDKGlobalConfiguration;
 import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.*;
@@ -138,7 +137,10 @@ public class S3LogFileStoragePluginTest {
                 throw new AmazonClientException("getObject");
             }
             if (getObjectS3Exception) {
-                throw new AmazonS3Exception("getObject");
+                AmazonS3Exception ase = new AmazonS3Exception("getObject");
+                ase.setRequestId("requestId");
+                ase.setExtendedRequestId("extendedRequestId");
+                throw ase;
             }
             return getObject;
         }
@@ -156,7 +158,10 @@ public class S3LogFileStoragePluginTest {
                 throw new AmazonClientException("putObject");
             }
             if (putObjectS3Exception) {
-                throw new AmazonS3Exception("putObject");
+                AmazonS3Exception putObject = new AmazonS3Exception("putObject");
+                putObject.setRequestId("requestId");
+                putObject.setExtendedRequestId("extendedRequestId");
+                throw putObject;
             }
             return putObject;
         }
@@ -183,8 +188,8 @@ public class S3LogFileStoragePluginTest {
             return region;
         }
 
-        public void setRegion(Region region) {
-            this.region = region;
+        public void setRegion(com.amazonaws.regions.Region region) {
+            this.region = Region.fromValue(region.getName());
         }
 
         public String getEndpoint() {
@@ -651,7 +656,11 @@ public class S3LogFileStoragePluginTest {
             testPlugin.isAvailable(DEFAULT_FILETYPE);
             Assert.fail("Should throw");
         } catch (ExecutionFileStorageException e) {
-            Assert.assertEquals("blah (Service: null; Status Code: 0; Error Code: null; Request ID: requestId)", e.getMessage());
+            Assert.assertEquals(
+                    "blah (Service: null; Status Code: 0; Error Code: null; Request ID: requestId; S3 Extended " +
+                    "Request ID: extendedRequestId)",
+                    e.getMessage()
+            );
         }
     }
 
@@ -690,7 +699,10 @@ public class S3LogFileStoragePluginTest {
             result = testPlugin.store(DEFAULT_FILETYPE, null, 0, null);
             Assert.fail("should throw");
         } catch (ExecutionFileStorageException e) {
-            Assert.assertEquals("putObject (Service: null; Status Code: 0; Error Code: null; Request ID: null)", e.getMessage());
+            Assert.assertEquals(
+                    "putObject (Service: null; Status Code: 0; Error Code: null; Request ID: requestId; S3 Extended Request ID: extendedRequestId)",
+                    e.getMessage()
+            );
         }
         Assert.assertFalse(result);
     }
@@ -814,7 +826,10 @@ public class S3LogFileStoragePluginTest {
             result = testPlugin.retrieve(DEFAULT_FILETYPE, stream);
             Assert.fail("should throw");
         } catch (ExecutionFileStorageException e) {
-            Assert.assertEquals("getObject (Service: null; Status Code: 0; Error Code: null; Request ID: null)", e.getMessage());
+            Assert.assertEquals(
+                    "getObject (Service: null; Status Code: 0; Error Code: null; Request ID: requestId; S3 Extended Request ID: extendedRequestId)",
+                    e.getMessage()
+            );
         }
         Assert.assertFalse(result);
         Assert.assertEquals("testBucket", testPlugin.getTestS3().getObjectBucketName);
