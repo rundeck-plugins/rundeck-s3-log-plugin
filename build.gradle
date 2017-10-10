@@ -12,8 +12,9 @@ defaultTasks 'clean','build'
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'pl.allegro.tech.build.axion-release'
+apply plugin: 'maven'
 
-sourceCompatibility = 1.6
+sourceCompatibility = 1.8
 ext.rundeckPluginVersion= '1.2'
 
 /**

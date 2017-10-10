@@ -98,13 +98,15 @@ public class S3LogFileStoragePluginTest {
 
 
         public boolean getObjectMetadata404 = false;
+        public String getObjectMetadata404Match = null;
         public boolean getObjectMetadataS3Exception = false;
         public boolean getObjectMetadataClientException = false;
         public ObjectMetadata getObjectMetadata;
 
         public ObjectMetadata getObjectMetadata(GetObjectMetadataRequest getObjectMetadataRequest) throws
                 AmazonClientException, AmazonServiceException {
-            if (getObjectMetadata404) {
+            if (getObjectMetadata404 || null != getObjectMetadata404Match && getObjectMetadataRequest.getKey().matches(
+                    getObjectMetadata404Match)) {
                 AmazonS3Exception ase = new AmazonS3Exception("test NOT Found");
                 ase.setStatusCode(404);
                 ase.setRequestId("requestId");
@@ -159,6 +161,23 @@ public class S3LogFileStoragePluginTest {
             return putObject;
         }
 
+        public boolean deleteObjectExpect;
+        public boolean deleteObjectError;
+        public String[] deleteObjectCalled = new String[2];
+
+        @Override
+        public void deleteObject(final String bucketName, final String key)
+                throws AmazonClientException, AmazonServiceException
+        {
+            if (!deleteObjectExpect) {
+                super.deleteObject(bucketName, key);
+            }
+            deleteObjectCalled[0] = bucketName;
+            deleteObjectCalled[1] = key;
+            if (deleteObjectError) {
+                throw new AmazonS3Exception("deleteObject");
+            }
+        }
 
         public Region getRegion() {
             return region;
@@ -196,10 +215,6 @@ public class S3LogFileStoragePluginTest {
         protected AmazonS3 createAmazonS3Client() {
             testS3 = new S3LogFileStoragePluginTest.testS3();
             return testS3;
-        }
-
-        public String getExpandedPath() {
-            return expandedPath;
         }
 
         public S3LogFileStoragePluginTest.testS3 getTestS3() {
@@ -683,6 +698,7 @@ public class S3LogFileStoragePluginTest {
     @Test
     public void storeMetadata() throws IOException, ExecutionFileStorageException {
         testPlugin testPlugin = initializeTestPlugin();
+//        testPlugin.setCheckpoint(false);
         testPlugin.getTestS3().putObject = new PutObjectResult();
         Date lastModified = new Date();
         int length = 123;
