@@ -11,5 +11,6 @@ deploy:
     secure: job0XnXHrUE7e9yxUyGneXDjylDiOdZgzaTHELF1tesZUaFVtaOLtNxSHH1pmeylHVf6bgbngZzOusZllC4sZ/91YouhCm32J6aet1AQYfMGAjN0GMWDLAWoXDKHyingfTWHy7vToehWvUb++m8d3HTczjkqh+ktb+w409VcbwA=
   file: build/libs/rundeck-s3-log-plugin-*.jar
   file_glob: true
+  skip_cleanup: true
   on:
     tags: true
