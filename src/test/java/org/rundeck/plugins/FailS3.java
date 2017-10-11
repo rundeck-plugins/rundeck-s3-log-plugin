@@ -1,13 +1,14 @@
 package org.rundeck.plugins;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.AmazonWebServiceRequest;
-import com.amazonaws.HttpMethod;
+import com.amazonaws.*;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.S3ResponseMetadata;
 import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.analytics.AnalyticsConfiguration;
+import com.amazonaws.services.s3.model.inventory.InventoryConfiguration;
+import com.amazonaws.services.s3.model.metrics.MetricsConfiguration;
+import com.amazonaws.services.s3.waiters.AmazonS3Waiters;
 import org.junit.Assert;
 
 import java.io.File;
@@ -567,5 +568,276 @@ class FailS3 implements AmazonS3 {
     public boolean doesObjectExist(String bucketName, String objectName) throws AmazonServiceException, AmazonClientException {
         Assert.fail("unexpected");
         return false;
+    }
+
+    @Override
+    public ListObjectsV2Result listObjectsV2(final String bucketName)
+            throws SdkClientException, AmazonServiceException
+    {
+        return null;
+    }
+
+    @Override
+    public ListObjectsV2Result listObjectsV2(final String bucketName, final String prefix)
+            throws SdkClientException, AmazonServiceException
+    {
+        return null;
+    }
+
+    @Override
+    public ListObjectsV2Result listObjectsV2(final ListObjectsV2Request listObjectsV2Request)
+            throws SdkClientException, AmazonServiceException
+    {
+        return null;
+    }
+
+    @Override
+    public String getObjectAsString(final String bucketName, final String key)
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public GetObjectTaggingResult getObjectTagging(final GetObjectTaggingRequest getObjectTaggingRequest) {
+        return null;
+    }
+
+    @Override
+    public SetObjectTaggingResult setObjectTagging(final SetObjectTaggingRequest setObjectTaggingRequest) {
+        return null;
+    }
+
+    @Override
+    public DeleteObjectTaggingResult deleteObjectTagging(final DeleteObjectTaggingRequest deleteObjectTaggingRequest) {
+        return null;
+    }
+
+    @Override
+    public PutObjectResult putObject(final String bucketName, final String key, final String content)
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public BucketAccelerateConfiguration getBucketAccelerateConfiguration(final String bucketName)
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public BucketAccelerateConfiguration getBucketAccelerateConfiguration(final GetBucketAccelerateConfigurationRequest getBucketAccelerateConfigurationRequest)
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public void setBucketAccelerateConfiguration(
+            final String bucketName, final BucketAccelerateConfiguration accelerateConfiguration
+    ) throws AmazonServiceException, SdkClientException
+    {
+
+    }
+
+    @Override
+    public void setBucketAccelerateConfiguration(final SetBucketAccelerateConfigurationRequest setBucketAccelerateConfigurationRequest)
+            throws AmazonServiceException, SdkClientException
+    {
+
+    }
+
+    @Override
+    public DeleteBucketMetricsConfigurationResult deleteBucketMetricsConfiguration(
+            final String bucketName,
+            final String id
+    )
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public DeleteBucketMetricsConfigurationResult deleteBucketMetricsConfiguration(
+            final DeleteBucketMetricsConfigurationRequest deleteBucketMetricsConfigurationRequest
+    ) throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public GetBucketMetricsConfigurationResult getBucketMetricsConfiguration(final String bucketName, final String id)
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public GetBucketMetricsConfigurationResult getBucketMetricsConfiguration(final GetBucketMetricsConfigurationRequest getBucketMetricsConfigurationRequest)
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public SetBucketMetricsConfigurationResult setBucketMetricsConfiguration(
+            final String bucketName, final MetricsConfiguration metricsConfiguration
+    ) throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public SetBucketMetricsConfigurationResult setBucketMetricsConfiguration(final SetBucketMetricsConfigurationRequest setBucketMetricsConfigurationRequest)
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public ListBucketMetricsConfigurationsResult listBucketMetricsConfigurations(final ListBucketMetricsConfigurationsRequest listBucketMetricsConfigurationsRequest)
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public DeleteBucketAnalyticsConfigurationResult deleteBucketAnalyticsConfiguration(
+            final String bucketName, final String id
+    ) throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public DeleteBucketAnalyticsConfigurationResult deleteBucketAnalyticsConfiguration(
+            final DeleteBucketAnalyticsConfigurationRequest deleteBucketAnalyticsConfigurationRequest
+    ) throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public GetBucketAnalyticsConfigurationResult getBucketAnalyticsConfiguration(
+            final String bucketName,
+            final String id
+    )
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public GetBucketAnalyticsConfigurationResult getBucketAnalyticsConfiguration(final GetBucketAnalyticsConfigurationRequest getBucketAnalyticsConfigurationRequest)
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public SetBucketAnalyticsConfigurationResult setBucketAnalyticsConfiguration(
+            final String bucketName, final AnalyticsConfiguration analyticsConfiguration
+    ) throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public SetBucketAnalyticsConfigurationResult setBucketAnalyticsConfiguration(final
+                                                                                     SetBucketAnalyticsConfigurationRequest setBucketAnalyticsConfigurationRequest)
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public ListBucketAnalyticsConfigurationsResult listBucketAnalyticsConfigurations(
+            final ListBucketAnalyticsConfigurationsRequest listBucketAnalyticsConfigurationsRequest
+    ) throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public DeleteBucketInventoryConfigurationResult deleteBucketInventoryConfiguration(
+            final String bucketName, final String id
+    ) throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public DeleteBucketInventoryConfigurationResult deleteBucketInventoryConfiguration(
+            final DeleteBucketInventoryConfigurationRequest deleteBucketInventoryConfigurationRequest
+    ) throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public GetBucketInventoryConfigurationResult getBucketInventoryConfiguration(
+            final String bucketName,
+            final String id
+    )
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public GetBucketInventoryConfigurationResult getBucketInventoryConfiguration(final GetBucketInventoryConfigurationRequest getBucketInventoryConfigurationRequest)
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public SetBucketInventoryConfigurationResult setBucketInventoryConfiguration(
+            final String bucketName, final InventoryConfiguration inventoryConfiguration
+    ) throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public SetBucketInventoryConfigurationResult setBucketInventoryConfiguration(final SetBucketInventoryConfigurationRequest setBucketInventoryConfigurationRequest)
+            throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public ListBucketInventoryConfigurationsResult listBucketInventoryConfigurations(
+            final ListBucketInventoryConfigurationsRequest listBucketInventoryConfigurationsRequest
+    ) throws AmazonServiceException, SdkClientException
+    {
+        return null;
+    }
+
+    @Override
+    public void shutdown() {
+
+    }
+
+    @Override
+    public Region getRegion() {
+        return null;
+    }
+
+    @Override
+    public String getRegionName() {
+        return null;
+    }
+
+    @Override
+    public URL getUrl(final String bucketName, final String key) {
+        return null;
+    }
+
+    @Override
+    public AmazonS3Waiters waiters() {
+        return null;
     }
 }

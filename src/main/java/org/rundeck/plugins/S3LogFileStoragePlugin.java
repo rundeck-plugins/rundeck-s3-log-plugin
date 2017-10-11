@@ -11,7 +11,7 @@ import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.SDKGlobalConfiguration;
 import com.dtolabs.rundeck.core.dispatcher.DataContextUtils;
-import com.dtolabs.rundeck.core.logging.ExecutionFileStorageException;
+import com.dtolabs.rundeck.core.logging.*;
 import com.dtolabs.rundeck.core.plugins.Plugin;
 import com.dtolabs.rundeck.plugins.ServiceNameConstants;
 import com.dtolabs.rundeck.plugins.descriptions.PluginDescription;
@@ -23,6 +23,7 @@ import java.io.*;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,12 +33,19 @@ import java.util.logging.Logger;
  */
 @Plugin(service = ServiceNameConstants.ExecutionFileStorage, name = "org.rundeck.amazon-s3")
 @PluginDescription(title = "S3", description = "Stores log files into an S3 bucket")
-public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCredentials {
-
+public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCredentials, ExecutionMultiFileStorage {
     public static final String DEFAULT_PATH_FORMAT = "project/${job.project}/${job.execid}";
     public static final String DEFAULT_REGION = "us-east-1";
+    public static final String META_EXECID = "execid";
+    public static final String _PREFIX_META = "rundeck.";
 
-    Logger logger = Logger.getLogger(S3LogFileStoragePlugin.class.getName());
+    public static final String META_USERNAME = "username";
+    public static final String META_PROJECT = "project";
+    public static final String META_URL = "url";
+    public static final String META_SERVERURL = "serverUrl";
+    public static final String META_SERVER_UUID = "serverUUID";
+
+    protected static Logger logger = Logger.getLogger(S3LogFileStoragePlugin.class.getName());
 
     @PluginProperty(title = "AWS Access Key", description = "AWS Access Key")
     private String AWSAccessKeyId;
@@ -78,15 +86,13 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
 
     @PluginProperty(
             title = "S3 Endpoint",
-            description = "S3 endpoint to connect to, the region is ignored if this is set.",
-            required = false,
-            defaultValue = "")
+            description = "S3 endpoint to connect to, the region is ignored if this is set."
+    )
     private String endpoint;
 
     @PluginProperty(
             title = "Force Signature v4",
             description = "Whether to force use of Signature Version 4 authentication. Default: false",
-            required = false,
             defaultValue = "false")
     private String forceSigV4;
 
@@ -94,20 +100,20 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             title = "Use Path Style",
             description = "Whether to access the Endpoint using `endpoint/bucket` style, default: false. The default will " +
                           "use DNS style `bucket.endpoint`, which may be incompatible with non-AWS S3-compatible services",
-            required = false,
             defaultValue = "false")
     private boolean pathStyle;
 
     protected String expandedPath;
 
     public S3LogFileStoragePlugin() {
+        super();
     }
 
-    private AmazonS3 amazonS3;
+    protected AmazonS3 amazonS3;
 
-    private Map<String, ? extends Object> context;
+    protected Map<String, ?> context;
 
-    public void initialize(Map<String, ? extends Object> context) {
+    public void initialize(Map<String, ?> context) {
         this.context = context;
         if ((null != getAWSAccessKeyId() && null == getAWSSecretKey()) ||
                 (null == getAWSAccessKeyId() && null != getAWSSecretKey())) {
@@ -178,9 +184,9 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     /**
      * can override for testing
      *
-     * @param awsCredentials
+     * @param awsCredentials credentials
      *
-     * @return
+     * @return amazons3
      */
     protected AmazonS3 createAmazonS3Client(AWSCredentials awsCredentials) {
         return new AmazonS3Client(awsCredentials);
@@ -188,8 +194,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     /**
      * can override for testing
      *
-     *
-     * @return
+     * @return amazons3
      */
     protected AmazonS3 createAmazonS3Client() {
         return new AmazonS3Client();
@@ -198,17 +203,17 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     /**
      * Expands the path format using the context data
      *
-     * @param pathFormat
-     * @param context
+     * @param pathFormat format
+     * @param context context data
      *
-     * @return
+     * @return expanded path
      */
-    static String expandPath(String pathFormat, Map<String, ? extends Object> context) {
+    static String expandPath(String pathFormat, Map<String, ?> context) {
         String result = pathFormat.replaceAll("^/+", "");
         if (null != context) {
             result = DataContextUtils.replaceDataReferences(
                     result,
-                    DataContextUtils.addContext("job", stringMap(context), new HashMap<String, Map<String, String>>()),
+                    DataContextUtils.addContext("job", stringMap(context), new HashMap<>()),
                     null,
                     false,
                     true
@@ -220,41 +225,54 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     }
 
     private static Map<String, String> stringMap(final Map<String, ?> context) {
-        HashMap<String, String> result = new HashMap<String, String>();
+        HashMap<String, String> result = new HashMap<>();
         for (String s : context.keySet()) {
-            result.put(s, context.get(s).toString());
+            Object o = context.get(s);
+            if (o != null) {
+                result.put(s, o.toString());
+            }
         }
         return result;
     }
 
-    private static String notNull(Map<String, ?> context1, String execid1, String defaultValue) {
-        Object value = context1.get(execid1);
-        return value != null ? value.toString() : defaultValue;
+    public boolean isAvailable(final String filetype) throws ExecutionFileStorageException {
+        HashMap<String, Object> expected = new HashMap<>();
+        expected.put(metaKey(META_EXECID), context.get(META_EXECID));
+        return isPathAvailable(resolvedFilepath(expandedPath, filetype), expected);
     }
 
-    public boolean isAvailable(final String filetype) throws ExecutionFileStorageException {
-        GetObjectMetadataRequest getObjectRequest = new GetObjectMetadataRequest(getBucket(), resolvedFilepath(expandedPath, filetype));
-        logger.log(Level.FINE, "getState for S3 bucket {0}:{1}", new Object[]{getBucket(), resolvedFilepath(expandedPath, filetype)});
+    protected boolean isPathAvailable(final String key, Map<String, Object> expectedMeta)
+            throws ExecutionFileStorageException
+    {
+        GetObjectMetadataRequest getObjectRequest = new GetObjectMetadataRequest(getBucket(), key);
+        logger.log(Level.FINE, "getState for S3 bucket {0}:{1}", new Object[]{getBucket(),
+                key});
         try {
             ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(getObjectRequest);
-            Map<String, String> userMetadata = objectMetadata.getUserMetadata();
-            String metaId = null;
-            if (null != userMetadata) {
-                metaId = userMetadata.get("rundeck.execid");
-            }
-            logger.log(Level.FINE, "Metadata {0}", new Object[]{objectMetadata.getUserMetadata()});
+            Map<String, String> userMetadata = objectMetadata != null ? objectMetadata.getUserMetadata() : null;
+
+            logger.log(Level.FINE, "Metadata {0}", new Object[]{userMetadata});
             //execution ID is stored in the user metadata for the object
             //compare to the context execution ID we are expecting
-            boolean matchesId = context.get("execid").equals(metaId);
-            if (!matchesId) {
-                logger.log(Level.WARNING, "S3 Object metadata 'rundeck.execid' was not expected: {0}, expected {1}",
-                        new Object[]{metaId, context.get("execid")});
+            if (null != expectedMeta) {
+                for (String s : expectedMeta.keySet()) {
+                    String metaVal = null;
+                    if (null != userMetadata) {
+                        metaVal = userMetadata.get(s);
+                    }
+                    boolean matches = expectedMeta.get(s).equals(metaVal);
+                    if (!matches) {
+                        logger.log(Level.WARNING, "S3 Object metadata '{0}' was not expected: {1}, expected {2}",
+                                   new Object[]{s, metaVal, expectedMeta.get(s)}
+                        );
+                    }
+                }
             }
             return true;
         } catch (AmazonS3Exception e) {
             if (e.getStatusCode() == 404) {
                 //not found
-                logger.log(Level.FINE, "getState: S3 Object not found for {0}", resolvedFilepath(expandedPath, filetype));
+                logger.log(Level.FINE, "getState: S3 Object not found for {0}", key);
             } else {
                 logger.log(Level.SEVERE, e.getMessage());
                 logger.log(Level.FINE, e.getMessage(), e);
@@ -269,34 +287,87 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         return false;
     }
 
-    public boolean store(final String filetype, InputStream stream, long length, Date lastModified) throws ExecutionFileStorageException {
-        boolean success = false;
-        logger.log(Level.FINE, "Storing content to S3 bucket {0} path {1}", new Object[]{getBucket(),
-                resolvedFilepath(expandedPath, filetype)});
-        ObjectMetadata objectMetadata = createObjectMetadata(length, lastModified);
-        PutObjectRequest putObjectRequest = new PutObjectRequest(getBucket(), resolvedFilepath(expandedPath, filetype), stream, objectMetadata);
+    public boolean store(final String filetype, InputStream stream, long length, Date lastModified)
+            throws ExecutionFileStorageException
+    {
+        boolean result = storePath(
+                stream,
+                resolvedFilepath(expandedPath, filetype),
+                createObjectMetadata(length, lastModified)
+        );
+
+        return result;
+    }
+
+
+    protected boolean storePath(
+            final InputStream stream,
+            final String key,
+            final ObjectMetadata objectMetadata1
+    )
+            throws ExecutionFileStorageException
+    {
+        logger.log(Level.FINE, "Storing content to S3 bucket {0} path {1}", new Object[]{getBucket(), key});
+        ObjectMetadata objectMetadata = objectMetadata1;
+        PutObjectRequest putObjectRequest = new PutObjectRequest(
+                getBucket(),
+                key,
+                stream,
+                objectMetadata
+        );
         try {
             amazonS3.putObject(putObjectRequest);
-            success = true;
+            return true;
         } catch (AmazonClientException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
             throw new ExecutionFileStorageException(e.getMessage(), e);
         }
-        return success;
     }
 
+    @Override
+    public void storeMultiple(final MultiFileStorageRequest files) throws IOException, ExecutionFileStorageException {
+        Set<String> availableFiletypes = files.getAvailableFiletypes();
+        logger.log(
+                Level.FINE,
+                "Storing multiple files to S3 bucket {0} filetypes: {1}",
+                new Object[]{getBucket(), availableFiletypes}
+        );
+        for (String filetype : availableFiletypes) {
+            StorageFile storageFile = files.getStorageFile(filetype);
+            boolean success;
+            try {
+                success = store(
+                        filetype,
+                        storageFile.getInputStream(),
+                        storageFile.getLength(),
+                        storageFile.getLastModified()
+                );
+                files.storageResultForFiletype(filetype, success);
+            } catch (ExecutionFileStorageException e) {
+                if (files instanceof MultiFileStorageRequestErrors) {
+                    MultiFileStorageRequestErrors errors = (MultiFileStorageRequestErrors) files;
+                    errors.storageFailureForFiletype(filetype, e.getMessage());
+                } else {
+                    logger.log(Level.SEVERE, e.getMessage());
+                    logger.log(Level.FINE, e.getMessage(), e);
+                    files.storageResultForFiletype(filetype, false);
+                }
+            }
+        }
+    }
     /**
      * Metadata keys from the Execution context that will be stored as User Metadata in the S3 Object
      */
-    private static final String[] STORED_META = new String[]{"execid", "username", "project", "url", "serverUrl",
-            "serverUUID"};
+    private static final String[] STORED_META = new String[]{META_EXECID, META_USERNAME,
+            META_PROJECT, META_URL, META_SERVERURL,
+            META_SERVER_UUID};
 
-    private ObjectMetadata createObjectMetadata(long length, Date lastModified) {
+    protected ObjectMetadata createObjectMetadata(long length, Date lastModified) {
         ObjectMetadata metadata = new ObjectMetadata();
         for (String s : STORED_META) {
             Object v = context.get(s);
             if (null != v) {
-                metadata.addUserMetadata("rundeck." + s, v.toString());
+                metadata.addUserMetadata(metaKey(s), v.toString());
             }
         }
         metadata.setLastModified(lastModified);
@@ -304,18 +375,26 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         return metadata;
     }
 
+    protected String metaKey(final String s) {
+        return _PREFIX_META + s;
+    }
 
-    public boolean retrieve(final String filetype, OutputStream stream) throws IOException, ExecutionFileStorageException {
-        S3Object object = null;
-        boolean success = false;
+
+    public boolean retrieve(final String filetype, OutputStream stream)
+            throws IOException, ExecutionFileStorageException
+    {
+        return retrievePath(stream, resolvedFilepath(expandedPath, filetype));
+    }
+
+
+    protected boolean retrievePath(final OutputStream stream, final String key)
+            throws IOException, ExecutionFileStorageException
+    {
+        S3Object object;
         try {
-            object = amazonS3.getObject(getBucket(), resolvedFilepath(expandedPath, filetype));
-            S3ObjectInputStream objectContent = object.getObjectContent();
-            try {
+            object = amazonS3.getObject(getBucket(), key);
+            try (S3ObjectInputStream objectContent = object.getObjectContent()) {
                 Streams.copyStream(objectContent, stream);
-                success = true;
-            } finally {
-                objectContent.close();
             }
 
         } catch (AmazonClientException e) {
@@ -323,19 +402,20 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             throw new ExecutionFileStorageException(e.getMessage(), e);
         }
 
-        return success;
+        return true;
     }
+
 
     public static void main(String[] args) throws IOException, ExecutionFileStorageException {
         S3LogFileStoragePlugin s3LogFileStoragePlugin = new S3LogFileStoragePlugin();
         String action = args[0];
-        Map<String, Object> context = new HashMap<String, Object>();
-        context.put("project", "test");
-        context.put("execid", args[2]);
+        Map<String, Object> context = new HashMap<>();
+        context.put(META_PROJECT, "test");
+        context.put(META_EXECID, args[2]);
         context.put("name", "test job");
         context.put("group", "test group");
         context.put("id", "testjobid");
-        context.put("username", "testuser");
+        context.put(META_USERNAME, "testuser");
 
         s3LogFileStoragePlugin.setAWSAccessKeyId("AKIAJ63ESPDAOS5FKWNQ");
         s3LogFileStoragePlugin.setAWSSecretKey(args[1]);
@@ -424,7 +504,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         this.forceSigV4 = forceSigV4;
     }
 
-    private String resolvedFilepath(final String path, final String filetype) {
+    protected String resolvedFilepath(final String path, final String filetype) {
         return path + "." + filetype;
     }
 
@@ -434,5 +514,13 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
 
     public void setPathStyle(boolean pathStyle) {
         this.pathStyle = pathStyle;
+    }
+
+    public String getExpandedPath() {
+        return expandedPath;
+    }
+
+    public AmazonS3 getAmazonS3() {
+        return amazonS3;
     }
 }
