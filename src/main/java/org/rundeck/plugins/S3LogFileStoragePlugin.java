@@ -211,7 +211,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     static String expandPath(String pathFormat, Map<String, ?> context) {
         String result = pathFormat.replaceAll("^/+", "");
         if (null != context) {
-            result = DataContextUtils.replaceDataReferencesInString(
+            result = DataContextUtils.replaceDataReferences(
                     result,
                     DataContextUtils.addContext("job", stringMap(context), new HashMap<>()),
                     null,

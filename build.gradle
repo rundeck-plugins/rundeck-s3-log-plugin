@@ -16,7 +16,7 @@ apply plugin: 'maven'
 
 sourceCompatibility = 1.8
 ext.rundeckPluginVersion= '1.2'
-ext.rundeckVersion='2.9.3'
+ext.rundeckVersion='2.6.5'
 
 /**
  * Set this to a comma-separated list of full classnames of your implemented Rundeck
