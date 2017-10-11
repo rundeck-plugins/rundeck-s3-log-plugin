@@ -8,9 +8,10 @@ cache:
 deploy:
   provider: releases
   api_key:
-    secure: job0XnXHrUE7e9yxUyGneXDjylDiOdZgzaTHELF1tesZUaFVtaOLtNxSHH1pmeylHVf6bgbngZzOusZllC4sZ/91YouhCm32J6aet1AQYfMGAjN0GMWDLAWoXDKHyingfTWHy7vToehWvUb++m8d3HTczjkqh+ktb+w409VcbwA=
+    secure: N6IpWVP5/ypxx7AJ+39eq5s7lfhKmKCUbm1RHXkdNFkBoDTJS3O8r0f47JyqQbXeyqpHnmKOBGEvdWs2nYjO/lGzSzbQ7IXQdlTz48Q2Nm2It7N1N7mvTIPKRgbO6zrambncyrj5mzs/jj/E8pB7yjR8Zuie4BJTKF7cdjFeKB4=
   file: build/libs/rundeck-s3-log-plugin-*.jar
   file_glob: true
   skip_cleanup: true
   on:
     tags: true
+    repo: rundeck-plugins/rundeck-s3-log-plugin
