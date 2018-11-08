@@ -415,7 +415,7 @@ public class S3LogFileStoragePluginTest {
         testPlugin.setAWSAccessKeyId("blah");
         testPlugin.setAWSSecretKey("blah");
         testPlugin.setBucket("testBucket");
-        testPlugin.setForceSignatureV4("true");
+        testPlugin.setForceSignatureV4(true);
         testPlugin.initialize(testContext());
         Assert.assertEquals("true",
                 System.getProperty(SDKGlobalConfiguration.ENFORCE_S3_SIGV4_SYSTEM_PROPERTY));

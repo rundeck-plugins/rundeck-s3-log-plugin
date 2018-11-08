@@ -95,13 +95,13 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             title = "Force Signature v4",
             description = "Whether to force use of Signature Version 4 authentication. Default: false",
             defaultValue = "false")
-    private String forceSigV4;
-    
+    private boolean forceSigV4;
+
     @PluginProperty(
             title = "Use Signature v2",
             description = "Use of Signature Version 2 authentication for old container. Default: false",
             defaultValue = "false")
-    private String useSigV2;
+    private boolean useSigV2;
 
     @PluginProperty(
             title = "Use Path Style",
@@ -514,28 +514,17 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         this.endpoint = endpoint;
     }
 
-    public boolean isSignatureV4Enforced() {
-        if (this.forceSigV4 != null && "true".equals(forceSigV4)) {
-            return true;
-        }
-        return false;
-    }
+    public boolean isSignatureV4Enforced() { return forceSigV4; }
 
-    public void setForceSignatureV4(String forceSigV4) {
+    public void setForceSignatureV4(boolean forceSigV4) {
         this.forceSigV4 = forceSigV4;
     }
-    
-    public boolean isSignatureV2Used() {
-        if (this.useSigV2 != null && "true".equals(useSigV2)) {
-            return true;
-        }
-        return false;
-    }
 
-    public void setUseSignatureV2(String useSigV2) {
+    public boolean isSignatureV2Used() { return useSigV2; }
+
+    public void setUseSignatureV2(boolean useSigV2) {
         this.useSigV2 = useSigV2;
     }
-
 
     protected String resolvedFilepath(final String path, final String filetype) {
         return path + "." + filetype;
