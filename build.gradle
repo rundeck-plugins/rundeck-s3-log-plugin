@@ -65,10 +65,10 @@ configurations{
 dependencies {
     // add any third-party jar dependencies you wish to include in the plugin
     // using the `pluginLibs` configuration as shown here:
-    
+
     pluginLibs group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.11.197'
-    
-    
+
+
     //the compile dependency won't add the rundeck-core jar to the plugin contents
     compile group: 'org.rundeck', name: 'rundeck-core', version: rundeckVersion
     testCompile group: 'junit', name:'junit', version: '4.11'
@@ -85,6 +85,13 @@ jar {
     from "$buildDir/output"
     manifest {
         def libList = configurations.pluginLibs.collect{'lib/'+it.name}.join(' ')
+        attributes 'Rundeck-Plugin-Name': 'S3 Log Plugin'
+        attributes 'Rundeck-Plugin-Description': 'Store execution log files in S3, for backup or for cloud-friendly behavior.'
+        attributes 'Rundeck-Plugin-Rundeck-Compatibility-Version': '2.6.5+'
+        attributes 'Rundeck-Plugin-Tags': 'java,s3,execution file storage'
+        attributes 'Rundeck-Plugin-License': 'Apache 2.0'
+        attributes 'Rundeck-Plugin-Author': 'Rundeck, Inc.'
+        attributes 'Rundeck-Plugin-Source-Link': 'https://github.com/rundeck-plugins/rundeck-s3-log-plugin'
         attributes 'Rundeck-Plugin-Classnames': pluginClassNames
         attributes 'Rundeck-Plugin-File-Version': version
         attributes 'Rundeck-Plugin-Version': rundeckPluginVersion, 'Rundeck-Plugin-Archive': 'true'
