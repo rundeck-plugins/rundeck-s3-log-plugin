@@ -1,7 +1,7 @@
 # Rundeck S3 Log Storage Plugin
 
 This is a plugin for [Rundeck](http://rundeck.org) that uses [Amazon S3](http://aws.amazon.com/s3) to store execution
-log files, for backup or for cloud-friendly behavior.
+log files for backups or for cloud-friendly behavior.
 
 ## Build
 
@@ -22,10 +22,10 @@ rundeck.execution.logs.fileStoragePlugin=org.rundeck.amazon-s3
 
 ## Configuration
 
-You can define the configuration values `$RUNDECK_DIR/framework.properties` by prefixing the property name with the stem:
+You can define the configuration values `$RUNDECK_DIR/framework.properties` by prefixing the property name with the stem. For example:
 
 ``` bash
-framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3`.
+framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.<key>=<value>
 ```
 
 Alternatively, use project.properties file with the stem `project.plugin.ExecutionFileStorage.org.rundeck.amazon-s3` to achieve per-project configuration.
