@@ -145,7 +145,11 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             amazonS3 = createAmazonS3Client();
         }
 
-        Region awsregion = RegionUtils.getRegion(getRegion());
+        Region awsregion = RegionUtils.getRegions().stream()
+            .filter(r -> r.getName().equals(getRegion()))
+            .findAny()
+            .orElse(null);
+
         if (null == awsregion) {
             throw new IllegalArgumentException("Region was not found: " + getRegion());
         }
