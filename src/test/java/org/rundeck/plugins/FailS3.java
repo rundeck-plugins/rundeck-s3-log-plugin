@@ -2,6 +2,7 @@ package org.rundeck.plugins;
 
 import com.amazonaws.*;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AbstractAmazonS3;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.S3ResponseMetadata;
 import com.amazonaws.services.s3.model.*;
@@ -20,7 +21,7 @@ import java.util.List;
 /**
 * $INTERFACE is ... User: greg Date: 6/12/13 Time: 7:28 PM
 */
-class FailS3 implements AmazonS3 {
+class FailS3 extends AbstractAmazonS3 {
 
     public void setEndpoint(String endpoint) {
         Assert.fail("unexpected");

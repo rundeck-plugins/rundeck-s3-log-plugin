@@ -66,7 +66,10 @@ dependencies {
     // add any third-party jar dependencies you wish to include in the plugin
     // using the `pluginLibs` configuration as shown here:
 
-    pluginLibs group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.11.197'
+    compile "com.amazonaws:aws-java-sdk-s3:1.11.616"
+    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.11.616') {
+            exclude group: "com.fasterxml.jackson.core"
+    }
 
 
     //the compile dependency won't add the rundeck-core jar to the plugin contents
@@ -103,6 +106,6 @@ jar {
 //set jar task to depend on copyToLib
 jar.dependsOn(copyToLib)
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '2.12'
-}
+//task wrapper(type: Wrapper) {
+//    gradleVersion = '2.12'
+//}
