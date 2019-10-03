@@ -380,6 +380,24 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             }
         }
     }
+
+    public boolean deleteFile(String filetype) throws IOException, ExecutionFileStorageException {
+        try{
+
+            HashMap<String, Object> expected = new HashMap<>();
+            expected.put(metaKey(META_EXECID), context.get(META_EXECID));
+            String filePath = resolvedFilepath(expandedPath, filetype);
+
+            amazonS3.deleteObject(getBucket(), filePath);
+            return true;
+        } catch (AmazonClientException e) {
+            logger.log(Level.SEVERE, e.getMessage(), e);
+            throw new ExecutionFileStorageException(e.getMessage(), e);
+        }
+    }
+
+
+
     /**
      * Metadata keys from the Execution context that will be stored as User Metadata in the S3 Object
      */
