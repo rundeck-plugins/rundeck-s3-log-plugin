@@ -67,7 +67,7 @@ dependencies {
     // using the `pluginLibs` configuration as shown here:
 
     compile "com.amazonaws:aws-java-sdk-s3:1.11.616"
-    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.11.616') {
+    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.11.743') {
             exclude group: "com.fasterxml.jackson.core"
     }
 
