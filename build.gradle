@@ -66,8 +66,11 @@ dependencies {
     // add any third-party jar dependencies you wish to include in the plugin
     // using the `pluginLibs` configuration as shown here:
 
-    compile "com.amazonaws:aws-java-sdk-s3:1.11.616"
+    compile "com.amazonaws:aws-java-sdk-s3:1.11.743"
     pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.11.743') {
+            exclude group: "com.fasterxml.jackson.core"
+    }
+    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: '1.11.743') {
             exclude group: "com.fasterxml.jackson.core"
     }
 
