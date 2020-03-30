@@ -39,7 +39,7 @@ scmVersion {
         }
     }
 }
-project.version = "1.0.8"//scmVersion.version
+project.version = scmVersion.version
 
 repositories {
     mavenLocal()
