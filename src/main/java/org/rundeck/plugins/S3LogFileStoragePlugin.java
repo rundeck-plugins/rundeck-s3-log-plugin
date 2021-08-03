@@ -21,6 +21,8 @@ import com.dtolabs.rundeck.plugins.logging.ExecutionFileStoragePlugin;
 import com.dtolabs.utils.Streams;
 
 import java.io.*;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,6 +63,9 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
 
     @PluginProperty(title = "Bucket name", required = true, description = "Bucket to store files in")
     private String bucket;
+
+    @PluginProperty(title = "Encode user metadata", required = false, description = "Encode user metadata to URL format", defaultValue = "false")
+    private boolean encodeUserMetadata = false;
 
     @PluginProperty(
             title = "Path",
@@ -410,7 +415,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         for (String s : STORED_META) {
             Object v = context.get(s);
             if (null != v) {
-                metadata.addUserMetadata(metaKey(s), v.toString());
+                metadata.addUserMetadata(metaKey(s), isEncodeUserMetadata() ? encodeStringToURLRequest(v.toString()) : v.toString());
             }
         }
         metadata.setLastModified(lastModified);
@@ -420,6 +425,16 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
 
     protected String metaKey(final String s) {
         return _PREFIX_META + s;
+    }
+
+    private String encodeStringToURLRequest(String value){
+        try {
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.toString());
+        } catch (UnsupportedEncodingException e) {
+            logger.log(Level.WARNING, e.getMessage(), e);
+        }
+
+        return value;
     }
 
 
@@ -566,5 +581,13 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
 
     public AmazonS3 getAmazonS3() {
         return amazonS3;
+    }
+
+    public boolean isEncodeUserMetadata() {
+        return encodeUserMetadata;
+    }
+
+    public void setEncodeUserMetadata(boolean encodeUserMetadata) {
+        this.encodeUserMetadata = encodeUserMetadata;
     }
 }
