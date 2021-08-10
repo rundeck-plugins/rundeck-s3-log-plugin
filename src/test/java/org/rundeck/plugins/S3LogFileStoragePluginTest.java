@@ -14,6 +14,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.io.*;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -726,6 +728,32 @@ public class S3LogFileStoragePluginTest {
         Assert.assertEquals(testContext().get("url"), userMetadata.get("rundeck.url"));
         Assert.assertEquals(testContext().get("serverUrl"), userMetadata.get("rundeck.serverUrl"));
         Assert.assertEquals(testContext().get("serverUUID"), userMetadata.get("rundeck.serverUUID"));
+    }
+
+    @Test
+    public void storeEncodedMetadata() throws IOException, ExecutionFileStorageException {
+        testPlugin testPlugin = new S3LogFileStoragePluginTest.testPlugin();
+        testPlugin.setAWSAccessKeyId("blah");
+        testPlugin.setAWSSecretKey("blah");
+        testPlugin.setBucket("testBucket");
+        testPlugin.setEncodeUserMetadata(true);
+        testPlugin.initialize(testContext());
+
+        testPlugin.getTestS3().putObject = new PutObjectResult();
+        Date lastModified = new Date();
+        int length = 123;
+        boolean result = false;
+        result = testPlugin.store(DEFAULT_FILETYPE, null, length, lastModified);
+        Assert.assertTrue(result);
+        Assert.assertEquals(length, testPlugin.getTestS3().putObjectRequest.getMetadata().getContentLength());
+        Assert.assertEquals(lastModified, testPlugin.getTestS3().putObjectRequest.getMetadata().getLastModified());
+        Map<String, String> userMetadata = testPlugin.getTestS3().putObjectRequest.getMetadata().getUserMetadata();
+        Assert.assertEquals(5, userMetadata.size());
+        Assert.assertEquals(URLEncoder.encode((String)testContext().get("execid"), StandardCharsets.UTF_8.toString()), userMetadata.get("rundeck.execid"));
+        Assert.assertEquals(URLEncoder.encode((String)testContext().get("project"), StandardCharsets.UTF_8.toString()), userMetadata.get("rundeck.project"));
+        Assert.assertEquals(URLEncoder.encode((String)testContext().get("url"), StandardCharsets.UTF_8.toString()), userMetadata.get("rundeck.url"));
+        Assert.assertEquals(URLEncoder.encode((String)testContext().get("serverUrl"), StandardCharsets.UTF_8.toString()), userMetadata.get("rundeck.serverUrl"));
+        Assert.assertEquals(URLEncoder.encode((String)testContext().get("serverUUID"), StandardCharsets.UTF_8.toString()), userMetadata.get("rundeck.serverUUID"));
     }
 
     class testOutputStream extends OutputStream {
