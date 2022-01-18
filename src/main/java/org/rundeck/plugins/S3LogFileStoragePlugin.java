@@ -115,6 +115,12 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             defaultValue = "false")
     private boolean pathStyle;
 
+    @PluginProperty(
+            title = "Use username in metadata",
+            description = "Include username in metadata sent to the server. Default: true",
+            defaultValue = "true")
+    private boolean metadataUsername;
+
     protected String expandedPath;
 
     public S3LogFileStoragePlugin() {
@@ -414,6 +420,9 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         ObjectMetadata metadata = new ObjectMetadata();
         for (String s : STORED_META) {
             Object v = context.get(s);
+            if (s.equals(META_USERNAME)) {
+                v = metadataUsername ? v : null;
+            }
             if (null != v) {
                 metadata.addUserMetadata(metaKey(s), isEncodeUserMetadata() ? encodeStringToURLRequest(v.toString()) : v.toString());
             }

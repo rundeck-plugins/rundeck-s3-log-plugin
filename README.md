@@ -73,6 +73,8 @@ Variables in the `path` value include:
 `pathStyle`: Optional, boolean, default=False, set to True if you need to define the bucket in your S3 like endpoint URL. e.g:
  `https://\<s3_like_end_point_url\>/\<your_bucket_name\>`
 
+`metadataUsername`: Optional, boolean, default=True, Set to False if you need to take away the username from metadata sent to the server.
+
 A custom way of defining buckets for your endpoint. Useful for non-AWS S3 like object storage technology e.g [SwiftStack](https://swiftstack.com), Optums, etc. This [background information](http://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html) should be useful.
 
 ## Basic Example (/etc/rundeck/framework.properties)
