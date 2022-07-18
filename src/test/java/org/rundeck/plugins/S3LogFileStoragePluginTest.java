@@ -660,7 +660,7 @@ public class S3LogFileStoragePluginTest {
         } catch (ExecutionFileStorageException e) {
             Assert.assertEquals(
                     "blah (Service: null; Status Code: 0; Error Code: null; Request ID: requestId; S3 Extended " +
-                    "Request ID: extendedRequestId)",
+                    "Request ID: extendedRequestId; Proxy: null)",
                     e.getMessage()
             );
         }
@@ -702,7 +702,7 @@ public class S3LogFileStoragePluginTest {
             Assert.fail("should throw");
         } catch (ExecutionFileStorageException e) {
             Assert.assertEquals(
-                    "putObject (Service: null; Status Code: 0; Error Code: null; Request ID: requestId; S3 Extended Request ID: extendedRequestId)",
+                    "putObject (Service: null; Status Code: 0; Error Code: null; Request ID: requestId; S3 Extended Request ID: extendedRequestId; Proxy: null)",
                     e.getMessage()
             );
         }
@@ -855,7 +855,7 @@ public class S3LogFileStoragePluginTest {
             Assert.fail("should throw");
         } catch (ExecutionFileStorageException e) {
             Assert.assertEquals(
-                    "getObject (Service: null; Status Code: 0; Error Code: null; Request ID: requestId; S3 Extended Request ID: extendedRequestId)",
+                    "getObject (Service: null; Status Code: 0; Error Code: null; Request ID: requestId; S3 Extended Request ID: extendedRequestId; Proxy: null)",
                     e.getMessage()
             );
         }

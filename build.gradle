@@ -1,39 +1,39 @@
 buildscript {
     repositories {
         mavenCentral()
-        maven { url "https://oss.sonatype.org/content/groups/public"}
+        maven { url 'https://oss.sonatype.org/content/groups/public' }
     }
 }
 
 plugins {
     id 'pl.allegro.tech.build.axion-release' version '1.10.0'
 }
-defaultTasks 'clean','build'
+defaultTasks 'clean', 'build'
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'pl.allegro.tech.build.axion-release'
 apply plugin: 'maven'
 
 sourceCompatibility = 1.8
-ext.rundeckPluginVersion= '1.2'
-ext.rundeckVersion='2.6.5'
+ext.rundeckPluginVersion = '1.2'
+ext.rundeckVersion = '2.6.5'
 
 /**
  * Set this to a comma-separated list of full classnames of your implemented Rundeck
  * plugins.
  */
-ext.pluginClassNames='org.rundeck.plugins.S3LogFileStoragePlugin'
+ext.pluginClassNames = 'org.rundeck.plugins.S3LogFileStoragePlugin'
 
 scmVersion {
     tag {
         prefix = 'v'
         versionSeparator = ''
-        def origDeserialize=deserialize
+        def origDeserialize = deserialize
         //apend .0 to satisfy semver if the tag version is only X.Y
         deserialize = { config, position, tagName ->
             def orig = origDeserialize(config, position, tagName)
             if (orig.split('\\.').length < 3) {
-                orig += ".0"
+                orig += '.0'
             }
             orig
         }
@@ -47,17 +47,16 @@ repositories {
 
     maven {
         // maven snapshot repo since we are using SNAPSHOT of rundeck-core for now
-        url "https://oss.sonatype.org/content/repositories/snapshots/"
+        url 'https://oss.sonatype.org/content/repositories/snapshots/'
     }
-
 }
 
-configurations{
+configurations {
     //declare custom pluginLibs configuration to include only libs for this plugin
     pluginLibs
 
     //declare compile to extend from pluginLibs so it inherits the dependencies
-    compile{
+    compile {
         extendsFrom pluginLibs
     }
 }
@@ -66,14 +65,13 @@ dependencies {
     // add any third-party jar dependencies you wish to include in the plugin
     // using the `pluginLibs` configuration as shown here:
 
-    compile "com.amazonaws:aws-java-sdk-s3:1.11.743"
-    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.11.743') {
-            exclude group: "com.fasterxml.jackson.core"
+    compile 'com.amazonaws:aws-java-sdk-s3:1.12.262'
+    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.12.262') {
+            exclude group: 'com.fasterxml.jackson.core'
     }
-    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: '1.11.743') {
-            exclude group: "com.fasterxml.jackson.core"
+    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: '1.12.262') {
+            exclude group: 'com.fasterxml.jackson.core'
     }
-
 
     //the compile dependency won't add the rundeck-core jar to the plugin contents
     compile group: 'org.rundeck', name: 'rundeck-core', version: rundeckVersion
@@ -86,11 +84,10 @@ task copyToLib(type: Copy) {
     from configurations.pluginLibs
 }
 
-
 jar {
     from "$buildDir/output"
     manifest {
-        def libList = configurations.pluginLibs.collect{'lib/'+it.name}.join(' ')
+        def libList = configurations.pluginLibs.collect { 'lib/' + it.name }.join(' ')
         attributes 'Rundeck-Plugin-Name': 'S3 Log Plugin'
         attributes 'Rundeck-Plugin-Description': 'Store execution log files in S3, for backup or for cloud-friendly behavior.'
         attributes 'Rundeck-Plugin-Rundeck-Compatibility-Version': '2.6.5+'
@@ -102,7 +99,7 @@ jar {
         attributes 'Rundeck-Plugin-File-Version': version
         attributes 'Rundeck-Plugin-Version': rundeckPluginVersion, 'Rundeck-Plugin-Archive': 'true'
         attributes 'Rundeck-Plugin-Libs': "${libList}"
-        attributes 'Main-Class': "org.rundeck.plugins.S3LogFileStoragePlugin"
+        attributes 'Main-Class': 'org.rundeck.plugins.S3LogFileStoragePlugin'
         attributes 'Class-Path': "${libList} lib/rundeck-core-${rundeckVersion}.jar"
     }
 }
@@ -112,3 +109,8 @@ jar.dependsOn(copyToLib)
 //task wrapper(type: Wrapper) {
 //    gradleVersion = '2.12'
 //}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << '-Xlint:unchecked'
+    options.deprecation = true
+}
