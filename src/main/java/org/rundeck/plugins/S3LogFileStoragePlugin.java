@@ -350,6 +350,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             amazonS3.putObject(putObjectRequest);
             return true;
         } catch (SdkClientException e){
+            logger.log(Level.FINE, "Job could still be executing", e.getMessage());
             throw new ExecutionFileStorageException(e.getMessage(), e);
         } catch (AmazonClientException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
