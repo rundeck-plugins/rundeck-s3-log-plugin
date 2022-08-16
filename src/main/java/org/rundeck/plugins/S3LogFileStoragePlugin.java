@@ -1,6 +1,7 @@
 package org.rundeck.plugins;
 
 import com.amazonaws.AmazonClientException;
+import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.regions.Region;
@@ -348,6 +349,9 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         try {
             amazonS3.putObject(putObjectRequest);
             return true;
+        } catch (SdkClientException e){
+            logger.log(Level.FINE, "Job could still be executing", e.getMessage());
+            throw new ExecutionFileStorageException(e.getMessage(), e);
         } catch (AmazonClientException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
             throw new ExecutionFileStorageException(e.getMessage(), e);
