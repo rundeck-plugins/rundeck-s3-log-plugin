@@ -12,7 +12,6 @@ defaultTasks 'clean','build'
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'pl.allegro.tech.build.axion-release'
-apply plugin: 'maven'
 
 sourceCompatibility = 1.8
 ext.rundeckPluginVersion= '1.2'
@@ -66,18 +65,20 @@ dependencies {
     // add any third-party jar dependencies you wish to include in the plugin
     // using the `pluginLibs` configuration as shown here:
 
-    compile "com.amazonaws:aws-java-sdk-s3:1.11.743"
-    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.11.743') {
+    implementation "com.amazonaws:aws-java-sdk-s3:1.12.470"
+    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.12.470') {
             exclude group: "com.fasterxml.jackson.core"
+            exclude group: "com.fasterxml.jackson.dataformat"
     }
-    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: '1.11.743') {
+    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: '1.12.470') {
             exclude group: "com.fasterxml.jackson.core"
+            exclude group: "com.fasterxml.jackson.dataformat"
     }
 
 
     //the compile dependency won't add the rundeck-core jar to the plugin contents
-    compile group: 'org.rundeck', name: 'rundeck-core', version: rundeckVersion
-    testCompile group: 'junit', name:'junit', version: '4.11'
+    implementation group: 'org.rundeck', name: 'rundeck-core', version: rundeckVersion
+    testImplementation group: 'junit', name:'junit', version: '4.11'
 }
 
 // task to copy plugin libs to output/lib dir
@@ -108,7 +109,3 @@ jar {
 }
 //set jar task to depend on copyToLib
 jar.dependsOn(copyToLib)
-
-//task wrapper(type: Wrapper) {
-//    gradleVersion = '2.12'
-//}
