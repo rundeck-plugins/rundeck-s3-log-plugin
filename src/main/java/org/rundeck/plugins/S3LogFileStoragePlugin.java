@@ -41,6 +41,9 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     public static final String DEFAULT_PATH_FORMAT = "project/${job.project}/${job.execid}";
     public static final String DEFAULT_REGION = "us-east-1";
     public static final String META_EXECID = "execid";
+
+    public static final String META_ID_FOR_LOGSTORE = "execIdForLogStore";
+
     public static final String _PREFIX_META = "rundeck.";
 
     public static final String META_USERNAME = "username";
@@ -188,7 +191,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         if (!configpath.contains("${job.execid}") && configpath.endsWith("/")) {
             configpath = path + "/${job.execid}";
         }
-        expandedPath = expandPath(configpath, context);
+        expandedPath = (context.get("isRemoteFilePath") != null && context.get("isRemoteFilePath").equals("true")) ? String.valueOf(context.get("outputfilepath").toString()) : expandPath(configpath, context);
         if (null == expandedPath || "".equals(expandedPath.trim())) {
             throw new IllegalArgumentException("expanded value of path was empty");
         }
@@ -268,7 +271,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
 
     public boolean isAvailable(final String filetype) throws ExecutionFileStorageException {
         HashMap<String, Object> expected = new HashMap<>();
-        expected.put(metaKey(META_EXECID), context.get(META_EXECID));
+        expected.put(metaKey(META_EXECID), context.get(META_ID_FOR_LOGSTORE));
         return isPathAvailable(resolvedFilepath(expandedPath, filetype), expected);
     }
 
@@ -394,7 +397,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         try{
 
             HashMap<String, Object> expected = new HashMap<>();
-            expected.put(metaKey(META_EXECID), context.get(META_EXECID));
+            expected.put(metaKey(META_EXECID), context.get(META_ID_FOR_LOGSTORE));
             String filePath = resolvedFilepath(expandedPath, filetype);
 
             amazonS3.deleteObject(getBucket(), filePath);
