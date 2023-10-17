@@ -275,6 +275,11 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         return isPathAvailable(resolvedFilepath(expandedPath, filetype), expected);
     }
 
+    @Override
+    public String getConfiguredPathTemplate() {
+        return this.path;
+    }
+
     protected boolean isPathAvailable(final String key, Map<String, Object> expectedMeta)
             throws ExecutionFileStorageException
     {
