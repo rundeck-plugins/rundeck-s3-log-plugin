@@ -15,7 +15,7 @@ apply plugin: 'pl.allegro.tech.build.axion-release'
 
 sourceCompatibility = 1.8
 ext.rundeckPluginVersion= '1.2'
-ext.rundeckVersion='2.6.5'
+ext.rundeckVersion='4.17.2-rc1-20231025'
 
 /**
  * Set this to a comma-separated list of full classnames of your implemented Rundeck
