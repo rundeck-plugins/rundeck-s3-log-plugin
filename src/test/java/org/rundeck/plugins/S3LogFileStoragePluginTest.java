@@ -64,6 +64,7 @@ public class S3LogFileStoragePluginTest {
     private HashMap<String, Object> testContext() {
         HashMap<String, Object> stringHashMap = new HashMap<String, Object>();
         stringHashMap.put("execid", "testexecid");
+        stringHashMap.put(S3LogFileStoragePlugin.META_ID_FOR_LOGSTORE, "testexecid");
         stringHashMap.put("project", "testproject");
         stringHashMap.put("url", "http://rundeck:4440/execution/5/show");
         stringHashMap.put("serverUrl", "http://rundeck:4440");
