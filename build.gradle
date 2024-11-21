@@ -109,3 +109,11 @@ jar {
 }
 //set jar task to depend on copyToLib
 jar.dependsOn(copyToLib)
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+}
