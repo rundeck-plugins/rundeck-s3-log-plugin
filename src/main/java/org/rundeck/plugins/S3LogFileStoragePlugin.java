@@ -384,6 +384,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
                     errors.storageFailureForFiletype(filetype, e.getMessage());
                 } else {
                     logger.error(e.getMessage());
+                    logger.debug(e.getMessage(), e);
                     files.storageResultForFiletype(filetype, false);
                 }
             }
