@@ -14,7 +14,8 @@ apply plugin: 'idea'
 apply plugin: 'maven-publish'
 apply plugin: 'pl.allegro.tech.build.axion-release'
 
-sourceCompatibility = 11
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
 ext.rundeckPluginVersion= '1.2'
 ext.rundeckVersion='5.2.0-20240410'
 
