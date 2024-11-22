@@ -14,9 +14,9 @@ apply plugin: 'idea'
 apply plugin: 'maven-publish'
 apply plugin: 'pl.allegro.tech.build.axion-release'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
 ext.rundeckPluginVersion= '1.2'
-ext.rundeckVersion='4.17.6-20240402'
+ext.rundeckVersion='5.2.0-20240410'
 
 /**
  * Set this to a comma-separated list of full classnames of your implemented Rundeck
@@ -86,7 +86,7 @@ jar {
         def libList = configurations.pluginLibs.collect{'lib/'+it.name}.join(' ')
         attributes 'Rundeck-Plugin-Name': 'S3 Log Plugin'
         attributes 'Rundeck-Plugin-Description': 'Store execution log files in S3, for backup or for cloud-friendly behavior.'
-        attributes 'Rundeck-Plugin-Rundeck-Compatibility-Version': '2.6.5+'
+        attributes 'Rundeck-Plugin-Rundeck-Compatibility-Version': '5.2.0+'
         attributes 'Rundeck-Plugin-Tags': 'java,s3,execution file storage'
         attributes 'Rundeck-Plugin-License': 'Apache 2.0'
         attributes 'Rundeck-Plugin-Author': 'Rundeck, Inc.'
