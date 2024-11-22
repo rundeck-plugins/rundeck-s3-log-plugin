@@ -20,6 +20,8 @@ import com.dtolabs.rundeck.plugins.descriptions.PluginDescription;
 import com.dtolabs.rundeck.plugins.descriptions.PluginProperty;
 import com.dtolabs.rundeck.plugins.logging.ExecutionFileStoragePlugin;
 import com.dtolabs.utils.Streams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.URLEncoder;
@@ -28,8 +30,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 /**
@@ -52,7 +52,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     public static final String META_SERVERURL = "serverUrl";
     public static final String META_SERVER_UUID = "serverUUID";
 
-    protected static Logger logger = Logger.getLogger(S3LogFileStoragePlugin.class.getName());
+    protected static Logger logger = LoggerFactory.getLogger(S3LogFileStoragePlugin.class.getName());
 
     @PluginProperty(title = "AWS Access Key", description = "AWS Access Key")
     private String AWSAccessKeyId;
@@ -284,13 +284,12 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             throws ExecutionFileStorageException
     {
         GetObjectMetadataRequest getObjectRequest = new GetObjectMetadataRequest(getBucket(), key);
-        logger.log(Level.FINE, "getState for S3 bucket {0}:{1}", new Object[]{getBucket(),
-                key});
+        logger.debug("getState for S3 bucket {}:{}", getBucket(),key);
         try {
             ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(getObjectRequest);
             Map<String, String> userMetadata = objectMetadata != null ? objectMetadata.getUserMetadata() : null;
 
-            logger.log(Level.FINE, "Metadata {0}", new Object[]{userMetadata});
+            logger.debug("Metadata {}", userMetadata);
             //execution ID is stored in the user metadata for the object
             //compare to the context execution ID we are expecting
             if (null != expectedMeta) {
@@ -301,7 +300,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
                     }
                     boolean matches = expectedMeta.get(s).equals(metaVal);
                     if (!matches) {
-                        logger.log(Level.WARNING, "S3 Object metadata '{0}' was not expected: {1}, expected {2}",
+                        logger.warn("S3 Object metadata '{0}' was not expected: {1}, expected {2}",
                                    new Object[]{s, metaVal, expectedMeta.get(s)}
                         );
                     }
@@ -311,15 +310,13 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         } catch (AmazonS3Exception e) {
             if (e.getStatusCode() == 404) {
                 //not found
-                logger.log(Level.FINE, "getState: S3 Object not found for {0}", key);
+                logger.debug("getState: S3 Object not found for {}", key);
             } else {
-                logger.log(Level.SEVERE, e.getMessage());
-                logger.log(Level.FINE, e.getMessage(), e);
+                logger.error("Failed get metadata", e);
                 throw new ExecutionFileStorageException(e.getMessage(), e);
             }
         } catch (AmazonClientException e) {
-            logger.log(Level.SEVERE, e.getMessage());
-            logger.log(Level.FINE, e.getMessage(), e);
+            logger.error("AWS client error", e);
             throw new ExecutionFileStorageException(e.getMessage(), e);
         }
 
@@ -329,25 +326,23 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     public boolean store(final String filetype, InputStream stream, long length, Date lastModified)
             throws ExecutionFileStorageException
     {
-        boolean result = storePath(
+        return storePath(
                 stream,
                 resolvedFilepath(expandedPath, filetype),
                 createObjectMetadata(length, lastModified)
         );
 
-        return result;
     }
 
 
     protected boolean storePath(
             final InputStream stream,
             final String key,
-            final ObjectMetadata objectMetadata1
+            final ObjectMetadata objectMetadata
     )
             throws ExecutionFileStorageException
     {
-        logger.log(Level.FINE, "Storing content to S3 bucket {0} path {1}", new Object[]{getBucket(), key});
-        ObjectMetadata objectMetadata = objectMetadata1;
+        logger.debug("Storing content to S3 bucket {} path {}", getBucket(), key);
         PutObjectRequest putObjectRequest = new PutObjectRequest(
                 getBucket(),
                 key,
@@ -358,10 +353,10 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             amazonS3.putObject(putObjectRequest);
             return true;
         } catch (SdkClientException e){
-            logger.log(Level.FINE, "Job could still be executing", e.getMessage());
+            logger.debug("Job could still be executing: {}", e.getMessage());
             throw new ExecutionFileStorageException(e.getMessage(), e);
         } catch (AmazonClientException e) {
-            logger.log(Level.SEVERE, e.getMessage(), e);
+            logger.error("AWS client error on store attempt", e);
             throw new ExecutionFileStorageException(e.getMessage(), e);
         }
     }
@@ -369,10 +364,8 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     @Override
     public void storeMultiple(final MultiFileStorageRequest files) throws IOException, ExecutionFileStorageException {
         Set<String> availableFiletypes = files.getAvailableFiletypes();
-        logger.log(
-                Level.FINE,
-                "Storing multiple files to S3 bucket {0} filetypes: {1}",
-                new Object[]{getBucket(), availableFiletypes}
+        logger.debug("Storing multiple files to S3 bucket {} filetypes: {}",
+                getBucket(), availableFiletypes
         );
         for (String filetype : availableFiletypes) {
             StorageFile storageFile = files.getStorageFile(filetype);
@@ -390,8 +383,8 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
                     MultiFileStorageRequestErrors errors = (MultiFileStorageRequestErrors) files;
                     errors.storageFailureForFiletype(filetype, e.getMessage());
                 } else {
-                    logger.log(Level.SEVERE, e.getMessage());
-                    logger.log(Level.FINE, e.getMessage(), e);
+                    logger.error(e.getMessage());
+                    logger.debug(e.getMessage(), e);
                     files.storageResultForFiletype(filetype, false);
                 }
             }
@@ -408,7 +401,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             amazonS3.deleteObject(getBucket(), filePath);
             return true;
         } catch (AmazonClientException e) {
-            logger.log(Level.SEVERE, e.getMessage(), e);
+            logger.error("AWS client error on delete", e);
             throw new ExecutionFileStorageException(e.getMessage(), e);
         }
     }
@@ -443,7 +436,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         try {
             return URLEncoder.encode(value, StandardCharsets.UTF_8.toString());
         } catch (UnsupportedEncodingException e) {
-            logger.log(Level.WARNING, e.getMessage(), e);
+            logger.warn(e.getMessage(), e);
         }
 
         return value;
@@ -468,7 +461,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             }
 
         } catch (AmazonClientException e) {
-            logger.log(Level.SEVERE, e.getMessage(), e);
+            logger.error("AWS client error on get object", e);
             throw new ExecutionFileStorageException(e.getMessage(), e);
         }
 
