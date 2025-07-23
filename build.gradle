@@ -17,7 +17,7 @@ apply plugin: 'pl.allegro.tech.build.axion-release'
 sourceCompatibility = JavaVersion.VERSION_11
 targetCompatibility = JavaVersion.VERSION_11
 ext.rundeckPluginVersion= '1.2'
-ext.rundeckVersion='5.2.0-20240410'
+ext.rundeckVersion='5.14.0-rc1-20250722'
 
 /**
  * Set this to a comma-separated list of full classnames of your implemented Rundeck
