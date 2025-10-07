@@ -9,6 +9,8 @@ log files for backups or for cloud-friendly behavior.
 ./gradlew clean build
 ```
 
+**Note**: This plugin has been updated with security fixes for vulnerable dependencies (JUnit 4.13.2, commons-lang3 3.18.0) and updated to use Rundeck Core 5.16.0-20251006 for enhanced security.
+
 ## Installation
 
 1. Copy the `rundeck-s3-log-plugin-x.y.jar` file to the `libext/` directory inside your Rundeck installation. You can find the releases [here](https://github.com/rundeck-plugins/rundeck-s3-log-plugin/releases).

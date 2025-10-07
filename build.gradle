@@ -6,7 +6,7 @@ buildscript {
 }
 
 plugins {
-    id 'pl.allegro.tech.build.axion-release' version '1.17.2'
+    id 'pl.allegro.tech.build.axion-release' version "${axionReleaseVersion}"
 }
 defaultTasks 'clean','build'
 apply plugin: 'java'
@@ -42,7 +42,21 @@ repositories {
         // maven snapshot repo since we are using SNAPSHOT of rundeck-core for now
         url "https://oss.sonatype.org/content/repositories/snapshots/"
     }
+}
 
+// Security: Force secure versions of vulnerable dependencies
+configurations.all {
+    resolutionStrategy.force(
+        "junit:junit:${junitVersion}",
+        "org.apache.commons:commons-lang3:${commonsLang3Version}"
+    )
+    
+    // Exclude vulnerable commons-lang 2.x in favor of commons-lang3
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.group == 'commons-lang' && details.requested.name == 'commons-lang') {
+            details.useTarget group: 'org.apache.commons', name: 'commons-lang3', version: commonsLang3Version
+        }
+    }
 }
 
 configurations{
@@ -71,7 +85,12 @@ dependencies {
 
     //the compile dependency won't add the rundeck-core jar to the plugin contents
     implementation group: 'org.rundeck', name: 'rundeck-core', version: rundeckVersion
-    testImplementation group: 'junit', name:'junit', version: '4.11'
+    
+    // Updated JUnit for security fixes
+    testImplementation group: 'junit', name: 'junit', version: junitVersion
+    
+    // Force secure versions of transitive dependencies
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: commonsLang3Version
 }
 
 // task to copy plugin libs to output/lib dir
