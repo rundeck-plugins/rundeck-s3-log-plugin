@@ -1,7 +1,101 @@
-*.iws
-*.ipr
+# Gradle files
+.gradle/
+build/
+!gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# Output directories
+out/
+bin/
+
+# IDE files
+.idea/
 *.iml
-build
-out
-.gradle
-/.idea
+*.ipr
+*.iws
+
+# Eclipse
+.project
+.classpath
+.settings/
+.metadata/
+
+# VS Code
+.vscode/
+
+# NetBeans
+nbproject/
+build.xml
+nb-configuration.xml
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+*.log
+*.tmp
+*.temp
+Desktop.ini
+
+# Linux
+*~
+
+# Java
+*.class
+*.jar
+# Allow gradle wrapper jars
+!gradle/wrapper/*.jar
+# Allow specific JAR files that should be versioned
+!libs/*.jar
+
+# Package files (but allow gradle wrapper)
+*.war
+*.ear
+*.nar
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Test results
+.junit/
+test-results/
+test-output/
+
+# Coverage reports
+.coverage
+coverage/
+*.lcov
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# Generated files
+generated/
+target/
+
+# Rundeck specific
+rundeck-config.properties
