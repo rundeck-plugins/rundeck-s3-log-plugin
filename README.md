@@ -9,7 +9,7 @@ log files for backups or for cloud-friendly behavior.
 ./gradlew clean build
 ```
 
-**Note**: This plugin has been updated with security fixes for vulnerable dependencies (JUnit 4.13.2, commons-lang3 3.18.0) and updated to use Rundeck Core 5.16.0-20251006 for enhanced security.
+**Note**: This plugin has been updated with security fixes for vulnerable dependencies updated to use Rundeck Core 5.16.0-20251006 and may require that version to work going forward.
 
 ## Installation
 
