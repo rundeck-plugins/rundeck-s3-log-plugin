@@ -8,16 +8,19 @@ buildscript {
 plugins {
     id 'pl.allegro.tech.build.axion-release' version "${axionReleaseVersion}"
 }
+
+group = 'com.github.rundeck-plugins'
+
 defaultTasks 'clean','build'
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'maven-publish'
 apply plugin: 'pl.allegro.tech.build.axion-release'
 
-sourceCompatibility = JavaVersion.VERSION_11
-targetCompatibility = JavaVersion.VERSION_11
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
 ext.rundeckPluginVersion= '1.2'
-ext.rundeckVersion='5.14.0-rc1-20250722'
+ext.rundeckVersion='6.0.0-SNAPSHOT'
 
 /**
  * Set this to a comma-separated list of full classnames of your implemented Rundeck
@@ -33,6 +36,8 @@ scmVersion {
     }
 }
 project.version = scmVersion.version
+// Override version for Grails 7 upgrade
+project.version = '2.0.3-grails7-upgrade-test'
 
 repositories {
     mavenLocal()
@@ -122,9 +127,22 @@ jar {
 //set jar task to depend on copyToLib
 jar.dependsOn(copyToLib)
 
+test {
+    useJUnit()
+    
+    // Java 17+ module access
+    jvmArgs = [
+        '--add-opens=java.base/java.lang=ALL-UNNAMED',
+        '--add-opens=java.base/java.util=ALL-UNNAMED',
+        '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED'
+    ]
+}
+
 publishing {
     publications {
         maven(MavenPublication) {
+            groupId = 'com.github.rundeck-plugins'
+            artifactId = 'rundeck-s3-log-plugin'
             from components.java
         }
     }
