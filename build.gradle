@@ -9,7 +9,7 @@ plugins {
     id 'pl.allegro.tech.build.axion-release' version "${axionReleaseVersion}"
 }
 
-group = 'com.github.rundeck-plugins'
+group = 'com.rundeck.plugins'
 
 defaultTasks 'clean','build'
 apply plugin: 'java'
@@ -29,15 +29,14 @@ ext.rundeckVersion='6.0.0-SNAPSHOT'
 ext.pluginClassNames='org.rundeck.plugins.S3LogFileStoragePlugin'
 
 scmVersion {
-    ignoreUncommittedChanges = true
+    ignoreUncommittedChanges = false
     tag {
-        prefix = 'v'
+        prefix = ''           // NO "v" prefix - see PLUGIN_TAGGING_ARCHITECTURE.md
         versionSeparator = ''
     }
+    versionCreator 'simple'  // Use simple version creator (just tag name)
 }
 project.version = scmVersion.version
-// Override version for Grails 7 upgrade
-project.version = '2.0.7-grails7-upgrade-test'
 
 repositories {
     mavenLocal()
@@ -84,8 +83,8 @@ configurations{
     //declare custom pluginLibs configuration to include only libs for this plugin
     pluginLibs
 
-    //declare compile to extend from pluginLibs so it inherits the dependencies
-    compile{
+    //declare implementation to extend from pluginLibs so it inherits the dependencies
+    implementation{
         extendsFrom pluginLibs
     }
 }
@@ -157,9 +156,24 @@ test {
 publishing {
     publications {
         maven(MavenPublication) {
-            groupId = 'com.github.rundeck-plugins'
+            groupId = 'com.rundeck.plugins'
             artifactId = 'rundeck-s3-log-plugin'
+            version = project.version
             from components.java
+        }
+    }
+    
+    repositories {
+        maven {
+            name = "PackageCloudTest"
+            url = uri("https://packagecloud.io/pagerduty/rundeckpro-test/maven2")
+            authentication {
+                header(HttpHeaderAuthentication)
+            }
+            credentials(HttpHeaderCredentials) {
+                name = "Authorization"
+                value = "Bearer " + (System.getenv("PKGCLD_WRITE_TOKEN") ?: project.findProperty("pkgcldWriteToken"))
+            }
         }
     }
 }
