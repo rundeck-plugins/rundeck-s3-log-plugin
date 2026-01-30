@@ -73,14 +73,24 @@ dependencies {
     // add any third-party jar dependencies you wish to include in the plugin
     // using the `pluginLibs` configuration as shown here:
 
-    implementation "com.amazonaws:aws-java-sdk-s3:${awsSdkVersion}"
-    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: "${awsSdkVersion}") {
-            exclude group: "com.fasterxml.jackson.core"
-            exclude group: "com.fasterxml.jackson.dataformat"
+    // AWS SDK v2 dependencies
+    implementation platform("software.amazon.awssdk:bom:${awsSdkBomVersion}")
+    pluginLibs platform("software.amazon.awssdk:bom:${awsSdkBomVersion}")
+
+    implementation ("software.amazon.awssdk:s3") {
+        exclude group: "org.slf4j"
+        exclude group: "com.fasterxml.jackson.core"
+        exclude group: "com.fasterxml.jackson.dataformat"
     }
-    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: "${awsSdkVersion}") {
-            exclude group: "com.fasterxml.jackson.core"
-            exclude group: "com.fasterxml.jackson.dataformat"
+    pluginLibs ("software.amazon.awssdk:s3") {
+        exclude group: "org.slf4j"
+        exclude group: "com.fasterxml.jackson.core"
+        exclude group: "com.fasterxml.jackson.dataformat"
+    }
+    pluginLibs ("software.amazon.awssdk:sts") {
+        exclude group: "org.slf4j"
+        exclude group: "com.fasterxml.jackson.core"
+        exclude group: "com.fasterxml.jackson.dataformat"
     }
 
     //the compile dependency won't add the rundeck-core jar to the plugin contents
