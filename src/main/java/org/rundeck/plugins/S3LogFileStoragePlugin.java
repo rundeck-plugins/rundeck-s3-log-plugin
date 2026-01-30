@@ -140,12 +140,12 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
             throw new IllegalArgumentException("AWSAccessKeyId and AWSSecretKey must both be configured.");
         }
 
-        // Determine credentials provider
-        AwsCredentialsProvider credentialsProvider;
+        // Determine credentials provider and create S3 client
         if (null != AWSAccessKeyId && null != AWSSecretKey) {
             // Use static credentials
-            credentialsProvider = StaticCredentialsProvider.create(
+            AwsCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(
                     AwsBasicCredentials.create(AWSAccessKeyId, AWSSecretKey));
+            s3Client = createS3Client(credentialsProvider);
         } else if (null != getAWSCredentialsFile()) {
             // Use credentials file - need to read and create provider
             File creds = new File(getAWSCredentialsFile());
@@ -164,17 +164,67 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
                 if (accessKey == null || secretKey == null) {
                     throw new IllegalArgumentException("Credentials file must contain 'accessKey' and 'secretKey' properties");
                 }
-                credentialsProvider = StaticCredentialsProvider.create(
+                AwsCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKey, secretKey));
+                s3Client = createS3Client(credentialsProvider);
             } catch (IOException e) {
                 throw new RuntimeException("Credentials file could not be read: " + getAWSCredentialsFile() + ": " + e
                         .getMessage(), e);
             }
         } else {
             // Use default credentials provider chain (IAM roles, environment variables, etc.)
-            credentialsProvider = DefaultCredentialsProvider.create();
+            s3Client = createS3Client();
         }
 
+        // Validate bucket and path configuration
+        if (null == bucket || "".equals(bucket.trim())) {
+            throw new IllegalArgumentException("bucket was not set");
+        }
+        if (null == getPath() || "".equals(getPath().trim())) {
+            throw new IllegalArgumentException("path was not set");
+        }
+        if (!getPath().contains("${job.execid}") && !getPath().endsWith("/")) {
+            throw new IllegalArgumentException("path must contain ${job.execid} or end with /");
+        }
+        String configpath = getPath();
+        if (!configpath.contains("${job.execid}") && configpath.endsWith("/")) {
+            configpath = path + "/${job.execid}";
+        }
+        expandedPath = (context.get("isRemoteFilePath") != null && context.get("isRemoteFilePath").equals("true"))
+                ? String.valueOf(context.get("outputfilepath").toString())
+                : expandPath(configpath, context);
+        if (null == expandedPath || "".equals(expandedPath.trim())) {
+            throw new IllegalArgumentException("expanded value of path was empty");
+        }
+        if (expandedPath.endsWith("/")) {
+            throw new IllegalArgumentException("expanded value of path must not end with /");
+        }
+    }
+
+    /**
+     * can override for testing
+     *
+     * @param awsCredentials credentials
+     *
+     * @return S3Client
+     */
+    protected S3Client createS3Client(AwsCredentialsProvider awsCredentials) {
+        return buildS3Client(awsCredentials);
+    }
+
+    /**
+     * can override for testing
+     *
+     * @return S3Client
+     */
+    protected S3Client createS3Client() {
+        return buildS3Client(DefaultCredentialsProvider.create());
+    }
+
+    /**
+     * Builds S3Client with all configuration
+     */
+    private S3Client buildS3Client(AwsCredentialsProvider credentialsProvider) {
         // Validate and parse region
         Region awsRegion;
         try {
@@ -212,61 +262,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
             clientBuilder.endpointOverride(java.net.URI.create(getEndpoint()));
         }
 
-        s3Client = clientBuilder.build();
-
-        // Validate bucket and path configuration
-        if (null == bucket || "".equals(bucket.trim())) {
-            throw new IllegalArgumentException("bucket was not set");
-        }
-        if (null == getPath() || "".equals(getPath().trim())) {
-            throw new IllegalArgumentException("path was not set");
-        }
-        if (!getPath().contains("${job.execid}") && !getPath().endsWith("/")) {
-            throw new IllegalArgumentException("path must contain ${job.execid} or end with /");
-        }
-        String configpath = getPath();
-        if (!configpath.contains("${job.execid}") && configpath.endsWith("/")) {
-            configpath = path + "/${job.execid}";
-        }
-        expandedPath = (context.get("isRemoteFilePath") != null && context.get("isRemoteFilePath").equals("true"))
-                ? String.valueOf(context.get("outputfilepath").toString())
-                : expandPath(configpath, context);
-        if (null == expandedPath || "".equals(expandedPath.trim())) {
-            throw new IllegalArgumentException("expanded value of path was empty");
-        }
-        if (expandedPath.endsWith("/")) {
-            throw new IllegalArgumentException("expanded value of path must not end with /");
-        }
-    }
-
-    /**
-     * can override for testing
-     *
-     * @param awsCredentials credentials
-     *
-     * @return S3Client
-     */
-    protected S3Client createS3Client(AwsCredentialsProvider awsCredentials) {
-        if (isSignatureV2Used()) {
-            logger.warn("Signature V2 is not supported in AWS SDK v2. Using Signature V4 instead.");
-        }
-        return S3Client.builder()
-                .credentialsProvider(awsCredentials)
-                .build();
-    }
-
-    /**
-     * can override for testing
-     *
-     * @return S3Client
-     */
-    protected S3Client createS3Client() {
-        if (isSignatureV2Used()) {
-            logger.warn("Signature V2 is not supported in AWS SDK v2. Using Signature V4 instead.");
-        }
-        return S3Client.builder()
-                .credentialsProvider(DefaultCredentialsProvider.create())
-                .build();
+        return clientBuilder.build();
     }
 
     /**

@@ -42,9 +42,19 @@ class MockS3Client implements S3Client {
     public boolean deleteObjectError = false;
     public String[] deleteObjectCalled = new String[2];
 
-    // Region/endpoint tracking
-    private software.amazon.awssdk.regions.Region region;
-    private String endpoint;
+    // Region/endpoint tracking (these would normally be set during client construction)
+    public software.amazon.awssdk.regions.Region region;
+    public String endpoint;
+
+    // Constructor to accept region configuration
+    public MockS3Client(software.amazon.awssdk.regions.Region region, String endpoint) {
+        this.region = region;
+        this.endpoint = endpoint;
+    }
+
+    public MockS3Client() {
+        this(null, null);
+    }
 
     @Override
     public HeadObjectResponse headObject(HeadObjectRequest request) throws S3Exception, SdkClientException {
@@ -93,14 +103,22 @@ class MockS3Client implements S3Client {
         }
 
         GetObjectResponse response = GetObjectResponse.builder().build();
-        InputStream inputStream = getObjectContent != null
-                ? new ByteArrayInputStream(getObjectContent)
-                : new ByteArrayInputStream(new byte[0]);
+        byte[] content = getObjectContent != null ? getObjectContent : new byte[0];
 
-        ResponseInputStream<GetObjectResponse> responseInputStream =
+        // For testing purposes, we create a simple InputStream and let the transformer handle it
+        // In the real SDK, this would be an AbortableInputStream, but for mocks a ByteArrayInputStream works
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(content);
+
+        // The ResponseTransformer.toInputStream() will wrap this in a ResponseInputStream
+        // We need to match what the real S3Client does, which returns ResponseInputStream<GetObjectResponse>
+        // For our mock, we'll just wrap it ourselves
+        ResponseInputStream<GetObjectResponse> responseStream =
                 new ResponseInputStream<>(response, inputStream);
 
-        return responseTransformer.transform(response, inputStream);
+        // Return the response stream cast to the expected type
+        @SuppressWarnings("unchecked")
+        ReturnT result = (ReturnT) responseStream;
+        return result;
     }
 
     @Override
@@ -153,20 +171,12 @@ class MockS3Client implements S3Client {
         // No-op for mock
     }
 
-    // Getters and setters for test verification
+    // Getters for test verification
     public software.amazon.awssdk.regions.Region getRegion() {
         return region;
     }
 
-    public void setRegion(software.amazon.awssdk.regions.Region region) {
-        this.region = region;
-    }
-
     public String getEndpoint() {
         return endpoint;
-    }
-
-    public void setEndpoint(String endpoint) {
-        this.endpoint = endpoint;
     }
 }
