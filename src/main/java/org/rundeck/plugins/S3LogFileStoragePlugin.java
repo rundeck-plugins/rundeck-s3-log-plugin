@@ -140,6 +140,16 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
             throw new IllegalArgumentException("AWSAccessKeyId and AWSSecretKey must both be configured.");
         }
 
+        // Validate region (SDK v2 doesn't validate this automatically)
+        String regionName = getRegion();
+        if (regionName != null && !regionName.trim().isEmpty()) {
+            boolean regionExists = Region.regions().stream()
+                    .anyMatch(r -> r.id().equals(regionName));
+            if (!regionExists) {
+                throw new IllegalArgumentException("Region was not found: " + regionName);
+            }
+        }
+
         // Determine credentials provider and create S3 client
         if (null != AWSAccessKeyId && null != AWSSecretKey) {
             // Use static credentials
@@ -225,13 +235,8 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
      * Builds S3Client with all configuration
      */
     private S3Client buildS3Client(AwsCredentialsProvider credentialsProvider) {
-        // Validate and parse region
-        Region awsRegion;
-        try {
-            awsRegion = Region.of(getRegion());
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Region was not found: " + getRegion(), e);
-        }
+        // Parse region (validation already done in initialize())
+        Region awsRegion = Region.of(getRegion());
 
         // Log warning if signature v2 or v4 enforcement is requested
         if (isSignatureV2Used()) {

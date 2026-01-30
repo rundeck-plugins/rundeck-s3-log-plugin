@@ -190,8 +190,7 @@ public class S3LogFileStoragePluginTest {
             testPlugin.initialize(testContext());
             Assert.fail("Should thrown exception");
         } catch (IllegalArgumentException e) {
-            Assert.assertTrue(e.getMessage().contains("doesn't contain the expected properties 'accessKey' and " +
-                    "'secretKey'."));
+            Assert.assertTrue(e.getMessage().contains("Credentials file must contain 'accessKey' and 'secretKey' properties"));
         }
     }
 
@@ -209,8 +208,7 @@ public class S3LogFileStoragePluginTest {
             testPlugin.initialize(testContext());
             Assert.fail("Should thrown exception");
         } catch (IllegalArgumentException e) {
-            Assert.assertTrue(e.getMessage().contains("doesn't contain the expected properties 'accessKey' and " +
-                    "'secretKey'."));
+            Assert.assertTrue(e.getMessage().contains("Credentials file must contain 'accessKey' and 'secretKey' properties"));
         }
     }
 
@@ -228,8 +226,7 @@ public class S3LogFileStoragePluginTest {
             testPlugin.initialize(testContext());
             Assert.fail("Should thrown exception");
         } catch (IllegalArgumentException e) {
-            Assert.assertTrue(e.getMessage().contains("doesn't contain the expected properties 'accessKey' and " +
-                    "'secretKey'."));
+            Assert.assertTrue(e.getMessage().contains("Credentials file must contain 'accessKey' and 'secretKey' properties"));
         }
     }
 
@@ -466,11 +463,8 @@ public class S3LogFileStoragePluginTest {
             testPlugin.isAvailable(DEFAULT_FILETYPE);
             Assert.fail("Should throw");
         } catch (ExecutionFileStorageException e) {
-            Assert.assertEquals(
-                    "blah (Service: null; Status Code: 0; Error Code: null; Request ID: requestId; S3 Extended " +
-                    "Request ID: extendedRequestId; Proxy: null)",
-                    e.getMessage()
-            );
+            // SDK v2 has different exception message format, just verify it contains the message
+            Assert.assertTrue("Exception message should contain 'blah'", e.getMessage().contains("blah"));
         }
     }
 
@@ -492,7 +486,7 @@ public class S3LogFileStoragePluginTest {
         testPlugin.getTestS3().putObjectClientException = true;
         boolean result = false;
         try {
-            result = testPlugin.store(DEFAULT_FILETYPE, null, 0, null);
+            result = testPlugin.store(DEFAULT_FILETYPE, new ByteArrayInputStream(new byte[0]), 0, null);
             Assert.fail("should throw");
         } catch (ExecutionFileStorageException e) {
             Assert.assertEquals("putObject", e.getMessage());
@@ -506,13 +500,11 @@ public class S3LogFileStoragePluginTest {
         testPlugin.getTestS3().putObjectS3Exception = true;
         boolean result = false;
         try {
-            result = testPlugin.store(DEFAULT_FILETYPE, null, 0, null);
+            result = testPlugin.store(DEFAULT_FILETYPE, new ByteArrayInputStream(new byte[0]), 0, null);
             Assert.fail("should throw");
         } catch (ExecutionFileStorageException e) {
-            Assert.assertEquals(
-                    "putObject (Service: null; Status Code: 0; Error Code: null; Request ID: requestId; S3 Extended Request ID: extendedRequestId; Proxy: null)",
-                    e.getMessage()
-            );
+            // SDK v2 has different exception message format, just verify it contains the message
+            Assert.assertTrue("Exception message should contain 'putObject'", e.getMessage().contains("putObject"));
         }
         Assert.assertFalse(result);
     }
@@ -525,7 +517,7 @@ public class S3LogFileStoragePluginTest {
         Date lastModified = new Date();
         int length = 123;
         boolean result = false;
-        result = testPlugin.store(DEFAULT_FILETYPE, null, length, lastModified);
+        result = testPlugin.store(DEFAULT_FILETYPE, new ByteArrayInputStream(new byte[0]), length, lastModified);
         Assert.assertTrue(result);
         Assert.assertEquals(Long.valueOf(length), testPlugin.getTestS3().putObjectRequest.contentLength());
         // Note: lastModified is no longer stored in PutObjectRequest in SDK v2, only in metadata map
@@ -551,7 +543,7 @@ public class S3LogFileStoragePluginTest {
         Date lastModified = new Date();
         int length = 123;
         boolean result = false;
-        result = testPlugin.store(DEFAULT_FILETYPE, null, length, lastModified);
+        result = testPlugin.store(DEFAULT_FILETYPE, new ByteArrayInputStream(new byte[0]), length, lastModified);
         Assert.assertTrue(result);
         Assert.assertEquals(Long.valueOf(length), testPlugin.getTestS3().putObjectRequest.contentLength());
         // Note: lastModified is no longer stored in PutObjectRequest in SDK v2, only in metadata map
@@ -657,10 +649,8 @@ public class S3LogFileStoragePluginTest {
             result = testPlugin.retrieve(DEFAULT_FILETYPE, stream);
             Assert.fail("should throw");
         } catch (ExecutionFileStorageException e) {
-            Assert.assertEquals(
-                    "getObject (Service: null; Status Code: 0; Error Code: null; Request ID: requestId; S3 Extended Request ID: extendedRequestId; Proxy: null)",
-                    e.getMessage()
-            );
+            // SDK v2 has different exception message format, just verify it contains the message
+            Assert.assertTrue("Exception message should contain 'getObject'", e.getMessage().contains("getObject"));
         }
         Assert.assertFalse(result);
         Assert.assertEquals("testBucket", testPlugin.getTestS3().getObjectBucketName);
