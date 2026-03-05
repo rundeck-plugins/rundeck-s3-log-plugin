@@ -1,6 +1,6 @@
 # Rundeck S3 Log Storage Plugin
 
-This is a plugin for [Rundeck](http://rundeck.org) that uses [Amazon S3](http://aws.amazon.com/s3) to store execution
+This is a plugin for [Rundeck](http://rundeck.org) that uses [S3](http://aws.amazon.com/s3) compatible object storage to store execution
 log files for backups or for cloud-friendly behavior.
 
 ## Build
@@ -86,6 +86,9 @@ framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.AWSSecretKey=ABC321.
 
 # Alternately, AWSCredentialsFile can point to a custom file which contains `accessKey` and `secretKey`
 framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.AWSCredentialsFile=/path/to/awscredentials.properties
+
+# Name of the endpoint in case you like to use the object storage from a different vendor
+framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.endpoint=https://s3.eu-central-4.ionoscloud.com
 
 # Name of the bucket
 framework.plugin.ExecutionFileStorage.org.rundeck.amazon-s3.bucket=test-rundeck-logs
