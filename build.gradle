@@ -7,18 +7,28 @@ buildscript {
 
 plugins {
     id 'pl.allegro.tech.build.axion-release' version "${axionReleaseVersion}"
+    id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
 }
 
-group = 'com.rundeck.plugins'
+group = 'org.rundeck.plugins'
+
+ext.publishName = "S3 Log Plugin ${project.version}"
+ext.githubSlug = 'rundeck-plugins/rundeck-s3-log-plugin'
+ext.developers = [
+        [id: 'gschueler', name: 'Greg Schueler', email: 'greg@rundeck.com']
+]
 
 defaultTasks 'clean','build'
 apply plugin: 'java'
 apply plugin: 'idea'
-apply plugin: 'maven-publish'
 apply plugin: 'pl.allegro.tech.build.axion-release'
 
-sourceCompatibility = JavaVersion.VERSION_17
-targetCompatibility = JavaVersion.VERSION_17
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
+    withJavadocJar()
+}
 ext.rundeckPluginVersion= '1.2'
 ext.rundeckVersion='6.0.0-SNAPSHOT'
 
@@ -103,9 +113,10 @@ dependencies {
             exclude group: "com.fasterxml.jackson.dataformat"
     }
 
-    //the compile dependency won't add the rundeck-core jar to the plugin contents
-    implementation group: 'org.rundeck', name: 'rundeck-core', version: rundeckVersion
-    
+    // rundeck-core: compileOnly for Central POM; testImplementation for tests (not bundled in plugin lib/)
+    compileOnly group: 'org.rundeck', name: 'rundeck-core', version: rundeckVersion
+    testImplementation group: 'org.rundeck', name: 'rundeck-core', version: rundeckVersion
+
     // Updated JUnit for security fixes
     testImplementation group: 'junit', name: 'junit', version: junitVersion
     
@@ -153,27 +164,14 @@ test {
     ]
 }
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            groupId = 'com.rundeck.plugins'
-            artifactId = 'rundeck-s3-log-plugin'
-            version = project.version
-            from components.java
-        }
-    }
-    
+nexusPublishing {
+    packageGroup = 'org.rundeck.plugins'
     repositories {
-        maven {
-            name = "PackageCloudTest"
-            url = uri("https://packagecloud.io/pagerduty/rundeckpro-test/maven2")
-            authentication {
-                header(HttpHeaderAuthentication)
-            }
-            credentials(HttpHeaderCredentials) {
-                name = "Authorization"
-                value = "Bearer " + (System.getenv("PKGCLD_WRITE_TOKEN") ?: project.findProperty("pkgcldWriteToken"))
-            }
+        sonatype {
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
         }
     }
 }
+
+apply from: "${rootDir}/gradle/publishing.gradle"
