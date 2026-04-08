@@ -7,17 +7,30 @@ buildscript {
 
 plugins {
     id 'pl.allegro.tech.build.axion-release' version "${axionReleaseVersion}"
+    id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
 }
+
+group = 'org.rundeck.plugins'
+
+ext.publishName = "S3 Log Plugin ${project.version}"
+ext.githubSlug = 'rundeck-plugins/rundeck-s3-log-plugin'
+ext.developers = [
+        [id: 'gschueler', name: 'Greg Schueler', email: 'greg@rundeck.com']
+]
+
 defaultTasks 'clean','build'
 apply plugin: 'java'
 apply plugin: 'idea'
-apply plugin: 'maven-publish'
 apply plugin: 'pl.allegro.tech.build.axion-release'
 
-sourceCompatibility = JavaVersion.VERSION_11
-targetCompatibility = JavaVersion.VERSION_11
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
+    withJavadocJar()
+}
 ext.rundeckPluginVersion= '1.2'
-ext.rundeckVersion='5.14.0-rc1-20250722'
+ext.rundeckVersion='6.0.0-alpha1-20260407'
 
 /**
  * Set this to a comma-separated list of full classnames of your implemented Rundeck
@@ -26,16 +39,33 @@ ext.rundeckVersion='5.14.0-rc1-20250722'
 ext.pluginClassNames='org.rundeck.plugins.S3LogFileStoragePlugin'
 
 scmVersion {
-    ignoreUncommittedChanges = true
+    ignoreUncommittedChanges = false
     tag {
-        prefix = 'v'
+        prefix = ''           // NO "v" prefix - see PLUGIN_TAGGING_ARCHITECTURE.md
         versionSeparator = ''
     }
+    versionCreator 'simple'  // Use simple version creator (just tag name)
 }
 project.version = scmVersion.version
 
 repositories {
     mavenLocal()
+    maven {
+        name = 'Central Portal Snapshots'
+        url = 'https://central.sonatype.com/repository/maven-snapshots/'
+        content {
+            includeGroup('org.rundeck')
+        }
+    }
+    maven {
+        name = 'Central Portal Snapshots'
+        url = 'https://central.sonatype.com/repository/maven-snapshots/'
+        
+        // Only search this repository for org.rundeck snapshots
+        content {
+            includeGroup('org.rundeck')
+        }
+    }
     mavenCentral()
 
     maven {
@@ -63,8 +93,8 @@ configurations{
     //declare custom pluginLibs configuration to include only libs for this plugin
     pluginLibs
 
-    //declare compile to extend from pluginLibs so it inherits the dependencies
-    compile{
+    //declare implementation to extend from pluginLibs so it inherits the dependencies
+    implementation{
         extendsFrom pluginLibs
     }
 }
@@ -83,9 +113,10 @@ dependencies {
             exclude group: "com.fasterxml.jackson.dataformat"
     }
 
-    //the compile dependency won't add the rundeck-core jar to the plugin contents
-    implementation group: 'org.rundeck', name: 'rundeck-core', version: rundeckVersion
-    
+    // rundeck-core: compileOnly for Central POM; testImplementation for tests (not bundled in plugin lib/)
+    compileOnly group: 'org.rundeck', name: 'rundeck-core', version: rundeckVersion
+    testImplementation group: 'org.rundeck', name: 'rundeck-core', version: rundeckVersion
+
     // Updated JUnit for security fixes
     testImplementation group: 'junit', name: 'junit', version: junitVersion
     
@@ -122,10 +153,25 @@ jar {
 //set jar task to depend on copyToLib
 jar.dependsOn(copyToLib)
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from components.java
+test {
+    useJUnit()
+    
+    // Java 17+ module access
+    jvmArgs = [
+        '--add-opens=java.base/java.lang=ALL-UNNAMED',
+        '--add-opens=java.base/java.util=ALL-UNNAMED',
+        '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED'
+    ]
+}
+
+nexusPublishing {
+    packageGroup = 'org.rundeck.plugins'
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
         }
     }
 }
+
+apply from: "${rootDir}/gradle/publishing.gradle"
