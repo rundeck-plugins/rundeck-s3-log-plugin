@@ -26,7 +26,7 @@ jobs:
       - name: Get Release Version
         id: get_version
         run: VERSION=$(./gradlew currentVersion -q -Prelease.quiet) && echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-      - name: Upload azure plugin jar
+      - name: Upload s3 log plugin jar
         uses: actions/upload-artifact@v4
         with:
           # Artifact name
