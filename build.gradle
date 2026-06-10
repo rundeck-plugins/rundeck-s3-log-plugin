@@ -103,14 +103,23 @@ dependencies {
     // add any third-party jar dependencies you wish to include in the plugin
     // using the `pluginLibs` configuration as shown here:
 
-    implementation "com.amazonaws:aws-java-sdk-s3:${awsSdkVersion}"
-    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: "${awsSdkVersion}") {
+    implementation "software.amazon.awssdk:s3:${awsSdkVersion}"
+    implementation "software.amazon.awssdk:sts:${awsSdkVersion}"
+    implementation "software.amazon.awssdk:url-connection-client:${awsSdkVersion}"
+    pluginLibs (group: 'software.amazon.awssdk', name: 's3', version: "${awsSdkVersion}") {
             exclude group: "com.fasterxml.jackson.core"
             exclude group: "com.fasterxml.jackson.dataformat"
+            exclude group: "org.slf4j"
     }
-    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: "${awsSdkVersion}") {
+    pluginLibs (group: 'software.amazon.awssdk', name: 'sts', version: "${awsSdkVersion}") {
             exclude group: "com.fasterxml.jackson.core"
             exclude group: "com.fasterxml.jackson.dataformat"
+            exclude group: "org.slf4j"
+    }
+    pluginLibs (group: 'software.amazon.awssdk', name: 'url-connection-client', version: "${awsSdkVersion}") {
+            exclude group: "com.fasterxml.jackson.core"
+            exclude group: "com.fasterxml.jackson.dataformat"
+            exclude group: "org.slf4j"
     }
 
     // rundeck-core: compileOnly for Central POM; testImplementation for tests (not bundled in plugin lib/)

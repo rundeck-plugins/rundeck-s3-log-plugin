@@ -1,17 +1,18 @@
 package org.rundeck.plugins;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.SdkClientException;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.PropertiesCredentials;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.RegionUtils;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.S3ClientOptions;
-import com.amazonaws.services.s3.model.*;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.SDKGlobalConfiguration;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.S3Configuration;
+import java.net.URI;
 import com.dtolabs.rundeck.core.dispatcher.DataContextUtils;
 import com.dtolabs.rundeck.core.logging.*;
 import com.dtolabs.rundeck.core.plugins.Plugin;
@@ -29,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 
@@ -37,7 +39,7 @@ import java.util.Set;
  */
 @Plugin(service = ServiceNameConstants.ExecutionFileStorage, name = "org.rundeck.amazon-s3")
 @PluginDescription(title = "S3", description = "Stores log files into an S3 bucket")
-public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCredentials, ExecutionMultiFileStorage {
+public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, ExecutionMultiFileStorage {
     public static final String DEFAULT_PATH_FORMAT = "project/${job.project}/${job.execid}";
     public static final String DEFAULT_REGION = "us-east-1";
     public static final String META_EXECID = "execid";
@@ -125,7 +127,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         super();
     }
 
-    protected AmazonS3 amazonS3;
+    protected S3Client s3Client;
 
     protected Map<String, ?> context;
 
@@ -136,7 +138,8 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             throw new IllegalArgumentException("AWSAccessKeyId and AWSSecretKey must both be configured.");
         }
         if (null != AWSAccessKeyId && null != AWSSecretKey) {
-            amazonS3 = createAmazonS3Client(this);
+            AwsCredentials credentials = AwsBasicCredentials.create(getAWSAccessKeyId(), getAWSSecretKey());
+            s3Client = createS3Client(StaticCredentialsProvider.create(credentials));
         } else if (null != getAWSCredentialsFile()) {
             File creds = new File(getAWSCredentialsFile());
             if (!creds.exists() || !creds.canRead()) {
@@ -144,38 +147,38 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
                         getAWSCredentialsFile());
             }
             try {
-                amazonS3 = createAmazonS3Client(new PropertiesCredentials(creds));
+                // Note: AWS SDK v2 doesn't have PropertiesCredentials, we'll need to parse manually
+                Properties props = new Properties();
+                props.load(new FileInputStream(creds));
+                String accessKey = props.getProperty("accessKey");
+                String secretKey = props.getProperty("secretKey");
+                if (accessKey == null || secretKey == null) {
+                    throw new RuntimeException("Credentials file must contain 'accessKey' and 'secretKey' properties: " + getAWSCredentialsFile());
+                }
+                AwsCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
+                s3Client = createS3Client(StaticCredentialsProvider.create(credentials));
             } catch (IOException e) {
                 throw new RuntimeException("Credentials file could not be read: " + getAWSCredentialsFile() + ": " + e
                         .getMessage(), e);
             }
         } else {
             //use credentials provider chain
-            amazonS3 = createAmazonS3Client();
+            s3Client = createS3Client(DefaultCredentialsProvider.create());
         }
 
-        Region awsregion = RegionUtils.getRegions().stream()
-            .filter(r -> r.getName().equals(getRegion()))
-            .findAny()
-            .orElse(null);
-
-        if (null == awsregion) {
-            throw new IllegalArgumentException("Region was not found: " + getRegion());
-        }
-
-        if (isSignatureV4Enforced()) {
-            System.setProperty(SDKGlobalConfiguration.ENFORCE_S3_SIGV4_SYSTEM_PROPERTY, "true");
-        }
-
-        if (null == getEndpoint() || "".equals(getEndpoint().trim())) {
-            amazonS3.setRegion(awsregion);
+        // Log configuration for troubleshooting S3-compatible services
+        if (null != getEndpoint() && !"".equals(getEndpoint().trim())) {
+            logger.info("S3 plugin configured for custom endpoint: '{}', bucket: '{}', path style: enabled", getEndpoint(), getBucket());
         } else {
-            amazonS3.setEndpoint(getEndpoint());
+            logger.info("S3 plugin configured for AWS S3, region: '{}', bucket: '{}', path style: {}", getRegion(), getBucket(), isPathStyle());
         }
-        if(isPathStyle()) {
-            S3ClientOptions clientOptions = new S3ClientOptions();
-            clientOptions.setPathStyleAccess(isPathStyle());
-            amazonS3.setS3ClientOptions(clientOptions);
+
+        // Skip region validation for custom endpoints (S3-compatible services)
+        if (null == getEndpoint() || "".equals(getEndpoint().trim())) {
+            Region awsRegion = Region.of(getRegion());
+            if (awsRegion == null || awsRegion == Region.AWS_GLOBAL) {
+                throw new IllegalArgumentException("Region was not found or is invalid: " + getRegion());
+            }
         }
 
         if (null == bucket || "".equals(bucket.trim())) {
@@ -204,34 +207,45 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     /**
      * can override for testing
      *
-     * @param awsCredentials credentials
+     * @param credentialsProvider credentials provider
      *
-     * @return amazons3
+     * @return S3Client
      */
-    protected AmazonS3 createAmazonS3Client(AWSCredentials awsCredentials) {
-        if (isSignatureV2Used()) {
-            ClientConfiguration opts = new ClientConfiguration();
-            opts.setSignerOverride("S3SignerType");
-            return new AmazonS3Client(awsCredentials, opts);
+    protected S3Client createS3Client(AwsCredentialsProvider credentialsProvider) {
+        S3ClientBuilder builder = S3Client.builder()
+                .credentialsProvider(credentialsProvider);
+
+        // Configure endpoint and region
+        if (null != getEndpoint() && !"".equals(getEndpoint().trim())) {
+            builder.endpointOverride(URI.create(getEndpoint()));
+            // For custom S3-compatible endpoints, use path style by default and minimal region validation
+            builder.serviceConfiguration(S3Configuration.builder()
+                    .pathStyleAccessEnabled(true)
+                    .checksumValidationEnabled(false)  // Some S3-compatible services have checksum issues
+                    .build());
+            // Use a dummy region for custom endpoints to avoid region validation issues
+            builder.region(Region.US_EAST_1);
         } else {
-            return new AmazonS3Client(awsCredentials);
+            // For real AWS S3, use the specified region
+            builder.region(Region.of(getRegion()));
+            // Configure path style access only if explicitly requested for AWS
+            if (isPathStyle()) {
+                builder.serviceConfiguration(S3Configuration.builder()
+                        .pathStyleAccessEnabled(true)
+                        .build());
+            }
         }
 
+        return builder.build();
     }
+    
     /**
      * can override for testing
      *
-     * @return amazons3
+     * @return S3Client
      */
-    protected AmazonS3 createAmazonS3Client() {
-        if (isSignatureV2Used()) {
-            ClientConfiguration opts = new ClientConfiguration();
-            opts.setSignerOverride("S3SignerType");
-            return new AmazonS3Client(opts);
-        } else {
-            return new AmazonS3Client();
-        }
-
+    protected S3Client createS3Client() {
+        return createS3Client(DefaultCredentialsProvider.create());
     }
 
     /**
@@ -283,11 +297,14 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     protected boolean isPathAvailable(final String key, Map<String, Object> expectedMeta)
             throws ExecutionFileStorageException
     {
-        GetObjectMetadataRequest getObjectRequest = new GetObjectMetadataRequest(getBucket(), key);
+        HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
+                .bucket(getBucket())
+                .key(key)
+                .build();
         logger.debug("getState for S3 bucket {}:{}", getBucket(),key);
         try {
-            ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(getObjectRequest);
-            Map<String, String> userMetadata = objectMetadata != null ? objectMetadata.getUserMetadata() : null;
+            HeadObjectResponse response = s3Client.headObject(headObjectRequest);
+            Map<String, String> userMetadata = response.metadata();
 
             logger.debug("Metadata {}", userMetadata);
             //execution ID is stored in the user metadata for the object
@@ -307,17 +324,26 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
                 }
             }
             return true;
-        } catch (AmazonS3Exception e) {
-            if (e.getStatusCode() == 404) {
+        } catch (NoSuchKeyException e) {
+            //not found
+            logger.debug("getState: S3 Object not found for {}", key);
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
                 //not found
                 logger.debug("getState: S3 Object not found for {}", key);
             } else {
-                logger.error("Failed get metadata", e);
-                throw new ExecutionFileStorageException(e.getMessage(), e);
+                String endpoint = (getEndpoint() != null && !getEndpoint().trim().isEmpty()) ? getEndpoint() : "default AWS endpoint for region " + getRegion();
+                logger.error("S3 error getting metadata for bucket '{}', endpoint '{}', key '{}': {} (Status: {}, Request ID: {})", 
+                        getBucket(), endpoint, key, e.getMessage(), e.statusCode(), e.requestId());
+                throw new ExecutionFileStorageException("Failed to get metadata from S3 bucket '" + getBucket() + 
+                        "' at endpoint '" + endpoint + "': " + e.getMessage(), e);
             }
-        } catch (AmazonClientException e) {
-            logger.error("AWS client error", e);
-            throw new ExecutionFileStorageException(e.getMessage(), e);
+        } catch (SdkClientException e) {
+            String endpoint = (getEndpoint() != null && !getEndpoint().trim().isEmpty()) ? getEndpoint() : "default AWS endpoint for region " + getRegion();
+            logger.error("AWS client error getting metadata for bucket '{}', endpoint '{}', key '{}': {}", 
+                    getBucket(), endpoint, key, e.getMessage());
+            throw new ExecutionFileStorageException("AWS client error getting metadata from bucket '" + getBucket() + 
+                    "' at endpoint '" + endpoint + "': " + e.getMessage(), e);
         }
 
         return false;
@@ -329,35 +355,43 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         return storePath(
                 stream,
                 resolvedFilepath(expandedPath, filetype),
-                createObjectMetadata(length, lastModified)
+                createObjectMetadata(length, lastModified),
+                length
         );
 
     }
 
-
     protected boolean storePath(
             final InputStream stream,
             final String key,
-            final ObjectMetadata objectMetadata
+            final Map<String, String> metadata,
+            final long contentLength
     )
             throws ExecutionFileStorageException
     {
-        logger.debug("Storing content to S3 bucket {} path {}", getBucket(), key);
-        PutObjectRequest putObjectRequest = new PutObjectRequest(
-                getBucket(),
-                key,
-                stream,
-                objectMetadata
-        );
+        logger.debug("Storing content to S3 bucket '{}' path '{}' (length: {})", getBucket(), key, contentLength);
+        String endpoint = (getEndpoint() != null && !getEndpoint().trim().isEmpty()) ? getEndpoint() : "default AWS endpoint for region " + getRegion();
+        logger.debug("Using endpoint: '{}', path style: {}, metadata keys: {}", endpoint, isPathStyle(), metadata.keySet());
+        
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(getBucket())
+                .key(key)
+                .metadata(metadata)
+                .build();
         try {
-            amazonS3.putObject(putObjectRequest);
+            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(stream, contentLength));
+            logger.debug("Successfully stored object to S3: bucket='{}', key='{}'", getBucket(), key);
             return true;
+        } catch (S3Exception e) {
+            logger.error("S3 error storing to bucket '{}', endpoint '{}', key '{}': {} (Status: {}, Request ID: {})", 
+                    getBucket(), endpoint, key, e.getMessage(), e.statusCode(), e.requestId());
+            throw new ExecutionFileStorageException("Failed to store to S3 bucket '" + getBucket() + 
+                    "' at endpoint '" + endpoint + "': " + e.getMessage(), e);
         } catch (SdkClientException e){
-            logger.debug("Job could still be executing: {}", e.getMessage());
-            throw new ExecutionFileStorageException(e.getMessage(), e);
-        } catch (AmazonClientException e) {
-            logger.error("AWS client error on store attempt", e);
-            throw new ExecutionFileStorageException(e.getMessage(), e);
+            logger.error("AWS client error storing to bucket '{}', endpoint '{}', key '{}': {}", 
+                    getBucket(), endpoint, key, e.getMessage());
+            throw new ExecutionFileStorageException("AWS client error storing to bucket '" + getBucket() + 
+                    "' at endpoint '" + endpoint + "': " + e.getMessage(), e);
         }
     }
 
@@ -392,20 +426,31 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     }
 
     public boolean deleteFile(String filetype) throws IOException, ExecutionFileStorageException {
+        HashMap<String, Object> expected = new HashMap<>();
+        expected.put(metaKey(META_EXECID), context.get(META_ID_FOR_LOGSTORE));
+        String filePath = resolvedFilepath(expandedPath, filetype);
+        
         try{
-
-            HashMap<String, Object> expected = new HashMap<>();
-            expected.put(metaKey(META_EXECID), context.get(META_ID_FOR_LOGSTORE));
-            String filePath = resolvedFilepath(expandedPath, filetype);
-
-            amazonS3.deleteObject(getBucket(), filePath);
+            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                    .bucket(getBucket())
+                    .key(filePath)
+                    .build();
+            s3Client.deleteObject(deleteRequest);
             return true;
-        } catch (AmazonClientException e) {
-            logger.error("AWS client error on delete", e);
-            throw new ExecutionFileStorageException(e.getMessage(), e);
+        } catch (S3Exception e) {
+            String endpoint = (getEndpoint() != null && !getEndpoint().trim().isEmpty()) ? getEndpoint() : "default AWS endpoint for region " + getRegion();
+            logger.error("S3 error deleting object from bucket '{}', endpoint '{}', key '{}': {} (Status: {}, Request ID: {})", 
+                    getBucket(), endpoint, filePath, e.getMessage(), e.statusCode(), e.requestId());
+            throw new ExecutionFileStorageException("Failed to delete object from S3 bucket '" + getBucket() + 
+                    "' at endpoint '" + endpoint + "': " + e.getMessage(), e);
+        } catch (SdkClientException e) {
+            String endpoint = (getEndpoint() != null && !getEndpoint().trim().isEmpty()) ? getEndpoint() : "default AWS endpoint for region " + getRegion();
+            logger.error("AWS client error deleting object from bucket '{}', endpoint '{}', key '{}': {}", 
+                    getBucket(), endpoint, filePath, e.getMessage());
+            throw new ExecutionFileStorageException("AWS client error deleting object from bucket '" + getBucket() + 
+                    "' at endpoint '" + endpoint + "': " + e.getMessage(), e);
         }
     }
-
 
 
     /**
@@ -415,16 +460,16 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             META_PROJECT, META_URL, META_SERVERURL,
             META_SERVER_UUID};
 
-    protected ObjectMetadata createObjectMetadata(long length, Date lastModified) {
-        ObjectMetadata metadata = new ObjectMetadata();
+    protected Map<String, String> createObjectMetadata(long length, Date lastModified) {
+        Map<String, String> metadata = new HashMap<>();
         for (String s : STORED_META) {
             Object v = context.get(s);
             if (null != v) {
-                metadata.addUserMetadata(metaKey(s), isEncodeUserMetadata() ? encodeStringToURLRequest(v.toString()) : v.toString());
+                metadata.put(metaKey(s), isEncodeUserMetadata() ? encodeStringToURLRequest(v.toString()) : v.toString());
             }
         }
-        metadata.setLastModified(lastModified);
-        metadata.setContentLength(length);
+        // Note: In AWS SDK v2, content-length and last-modified are not stored in user metadata
+        // They are handled automatically by the SDK
         return metadata;
     }
 
@@ -453,21 +498,32 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
     protected boolean retrievePath(final OutputStream stream, final String key)
             throws IOException, ExecutionFileStorageException
     {
-        S3Object object;
         try {
-            object = amazonS3.getObject(getBucket(), key);
-            try (S3ObjectInputStream objectContent = object.getObjectContent()) {
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                    .bucket(getBucket())
+                    .key(key)
+                    .build();
+            
+            try (InputStream objectContent = s3Client.getObject(getObjectRequest)) {
                 Streams.copyStream(objectContent, stream);
             }
 
-        } catch (AmazonClientException e) {
-            logger.error("AWS client error on get object", e);
-            throw new ExecutionFileStorageException(e.getMessage(), e);
+        } catch (S3Exception e) {
+            String endpoint = (getEndpoint() != null && !getEndpoint().trim().isEmpty()) ? getEndpoint() : "default AWS endpoint for region " + getRegion();
+            logger.error("S3 error retrieving object from bucket '{}', endpoint '{}', key '{}': {} (Status: {}, Request ID: {})", 
+                    getBucket(), endpoint, key, e.getMessage(), e.statusCode(), e.requestId());
+            throw new ExecutionFileStorageException("Failed to retrieve object from S3 bucket '" + getBucket() + 
+                    "' at endpoint '" + endpoint + "': " + e.getMessage(), e);
+        } catch (SdkClientException e) {
+            String endpoint = (getEndpoint() != null && !getEndpoint().trim().isEmpty()) ? getEndpoint() : "default AWS endpoint for region " + getRegion();
+            logger.error("AWS client error retrieving object from bucket '{}', endpoint '{}', key '{}': {}", 
+                    getBucket(), endpoint, key, e.getMessage());
+            throw new ExecutionFileStorageException("AWS client error retrieving object from bucket '" + getBucket() + 
+                    "' at endpoint '" + endpoint + "': " + e.getMessage(), e);
         }
 
         return true;
     }
-
 
     public static void main(String[] args) throws IOException, ExecutionFileStorageException {
         S3LogFileStoragePlugin s3LogFileStoragePlugin = new S3LogFileStoragePlugin();
@@ -500,7 +556,6 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
             System.out.println("available? " + s3LogFileStoragePlugin.isAvailable(filetype));
         }
     }
-
 
     public String getAWSAccessKeyId() {
         return AWSAccessKeyId;
@@ -584,8 +639,8 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, AWSCr
         return expandedPath;
     }
 
-    public AmazonS3 getAmazonS3() {
-        return amazonS3;
+    public S3Client getS3Client() {
+        return s3Client;
     }
 
     public boolean isEncodeUserMetadata() {
