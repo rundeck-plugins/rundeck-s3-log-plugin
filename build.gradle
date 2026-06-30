@@ -100,17 +100,18 @@ configurations{
 }
 
 dependencies {
-    // add any third-party jar dependencies you wish to include in the plugin
-    // using the `pluginLibs` configuration as shown here:
+    // AWS SDK v2 BOM manages versions for all SDK v2 modules
+    implementation platform("software.amazon.awssdk:bom:${awsSdkV2Version}")
+    // BOM must also be applied to pluginLibs so unversioned SDK deps resolve correctly
+    pluginLibs platform("software.amazon.awssdk:bom:${awsSdkV2Version}")
 
-    implementation "com.amazonaws:aws-java-sdk-s3:${awsSdkVersion}"
-    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: "${awsSdkVersion}") {
-            exclude group: "com.fasterxml.jackson.core"
-            exclude group: "com.fasterxml.jackson.dataformat"
+    pluginLibs('software.amazon.awssdk:s3') {
+        exclude group: "com.fasterxml.jackson.core"
+        exclude group: "com.fasterxml.jackson.dataformat"
     }
-    pluginLibs (group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: "${awsSdkVersion}") {
-            exclude group: "com.fasterxml.jackson.core"
-            exclude group: "com.fasterxml.jackson.dataformat"
+    pluginLibs('software.amazon.awssdk:sts') {
+        exclude group: "com.fasterxml.jackson.core"
+        exclude group: "com.fasterxml.jackson.dataformat"
     }
 
     // rundeck-core: compileOnly for Central POM; testImplementation for tests (not bundled in plugin lib/)
@@ -119,7 +120,10 @@ dependencies {
 
     // Updated JUnit for security fixes
     testImplementation group: 'junit', name: 'junit', version: junitVersion
-    
+
+    // Mockito for unit testing with AWS SDK v2 (no AbstractS3Client in v2)
+    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
+
     // Force secure versions of transitive dependencies
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: commonsLang3Version
 }
