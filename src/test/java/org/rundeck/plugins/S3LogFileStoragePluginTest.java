@@ -292,9 +292,9 @@ public class S3LogFileStoragePluginTest {
         plugin.setAWSAccessKeyId("blah");
         plugin.setAWSSecretKey("blah");
         plugin.setBucket("testBucket");
-        plugin.setEndpoint("localhost");
+        plugin.setEndpoint("https://localhost");
         plugin.initialize(testContext());
-        Assert.assertEquals("localhost", plugin.capturedEndpoint);
+        Assert.assertEquals("https://localhost", plugin.capturedEndpoint);
     }
 
     @Test

@@ -231,7 +231,11 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
                 .region(region);
 
         if (null != getEndpoint() && !getEndpoint().trim().isEmpty()) {
-            builder.endpointOverride(URI.create(getEndpoint()));
+            String ep = getEndpoint().trim();
+            if (!ep.startsWith("http://") && !ep.startsWith("https://")) {
+                ep = "https://" + ep;
+            }
+            builder.endpointOverride(URI.create(ep));
         }
 
         if (isPathStyle()) {
@@ -406,6 +410,9 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
                     .key(filePath)
                     .build());
             return true;
+        } catch (S3Exception e) {
+            logger.error("S3 service error on delete", e);
+            throw new ExecutionFileStorageException(e.getMessage(), e);
         } catch (SdkClientException e) {
             logger.error("AWS client error on delete", e);
             throw new ExecutionFileStorageException(e.getMessage(), e);
@@ -461,7 +468,7 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
             }
             return true;
         } catch (S3Exception e) {
-            logger.error("AWS client error on get object", e);
+            logger.error("S3 service error on get object", e);
             throw new ExecutionFileStorageException(e.getMessage(), e);
         } catch (SdkClientException e) {
             logger.error("AWS client error on get object", e);
