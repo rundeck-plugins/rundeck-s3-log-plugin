@@ -29,7 +29,7 @@ java {
     withJavadocJar()
 }
 ext.rundeckPluginVersion= '1.2'
-ext.rundeckVersion='6.1.0-SNAPSHOT'
+ext.rundeckVersion='6.1.0-20260803'
 
 /**
  * Set this to a comma-separated list of full classnames of your implemented Rundeck
