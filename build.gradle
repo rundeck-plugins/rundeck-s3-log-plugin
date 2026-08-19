@@ -107,10 +107,15 @@ dependencies {
     pluginLibs('software.amazon.awssdk:s3') {
         exclude group: "com.fasterxml.jackson.core"
         exclude group: "com.fasterxml.jackson.dataformat"
+        // Don't bundle slf4j-api: the AWS SDK pulls in an old 1.7.x copy that shadows
+        // Rundeck core's own slf4j-api + logging binding in the plugin classloader,
+        // which silently drops all of this plugin's own log output (see issue #85).
+        exclude group: "org.slf4j", module: "slf4j-api"
     }
     pluginLibs('software.amazon.awssdk:sts') {
         exclude group: "com.fasterxml.jackson.core"
         exclude group: "com.fasterxml.jackson.dataformat"
+        exclude group: "org.slf4j", module: "slf4j-api"
     }
 
     // rundeck-core: compileOnly for Central POM; testImplementation for tests (not bundled in plugin lib/)
