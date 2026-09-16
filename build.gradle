@@ -23,13 +23,13 @@ apply plugin: 'idea'
 apply plugin: 'pl.allegro.tech.build.axion-release'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
     withSourcesJar()
     withJavadocJar()
 }
 ext.rundeckPluginVersion= '1.2'
-ext.rundeckVersion='6.1.0-20260803'
+ext.rundeckVersion='7.0.0-SNAPSHOT'
 
 /**
  * Set this to a comma-separated list of full classnames of your implemented Rundeck
