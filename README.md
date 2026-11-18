@@ -70,7 +70,7 @@ Variables in the `path` value include:
 
 `region`: AWS region name to use. Default: `us-east-1`
 
-`endpoint`: Optional, a custom S3 compatible endpoint to use, such as `https://my-host.com/s3`. Use an `https://` endpoint whenever possible: plain `http://` sends credentials-signed requests and log contents unencrypted. When an endpoint is set, the plugin only sends request checksums when an S3 operation requires them, because the newer AWS SDK default (checksum headers plus an `aws-chunked` checksum trailer) is rejected by many S3-compatible services. Without an endpoint, the AWS SDK defaults for AWS S3 are kept.
+`endpoint`: Optional, a custom S3 compatible endpoint to use, such as `https://my-host.com/s3`. Use an `https://` endpoint whenever possible: plain `http://` sends credentials-signed requests and log contents unencrypted. When an endpoint is set, the plugin only sends request checksums when an S3 operation requires them, because the newer AWS SDK default adds optional checksum headers and a checksum trailer that many S3-compatible services reject. This removes those optional checksum headers and trailer, not `aws-chunked` itself: over plain `http://` the SDK may still stream the upload using signed `aws-chunked` encoding. Without an endpoint, the AWS SDK defaults for AWS S3 are kept.
 
 `pathStyle`: Optional, boolean, default=False, set to True if you need to define the bucket in your S3 like endpoint URL. e.g:
  `https://\<s3_like_end_point_url\>/\<your_bucket_name\>`

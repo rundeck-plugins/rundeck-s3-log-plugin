@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpsServer;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -57,7 +58,10 @@ public class S3LogFileStoragePluginClientTest {
     private static File keyStoreFile;
     private static final Map<String, String> previousTrustStoreProperties = new HashMap<>();
 
+    private static final String ENDPOINT_URL_S3_PROPERTY = "aws.endpointUrlS3";
+
     private HttpServer server;
+    private String previousEndpointUrlS3;
     private final List<RecordedRequest> requests = new CopyOnWriteArrayList<>();
 
     /**
@@ -100,12 +104,28 @@ public class S3LogFileStoragePluginClientTest {
         previousTrustStoreProperties.clear();
     }
 
+    /**
+     * Captures the SDK endpoint system property so each test can restore it afterwards.
+     */
+    @Before
+    public void captureEndpointProperty() {
+        previousEndpointUrlS3 = System.getProperty(ENDPOINT_URL_S3_PROPERTY);
+    }
+
+    /**
+     * Stops the fake S3 server and restores the SDK endpoint system property to its previous
+     * value, clearing it only when it was not set before the test.
+     */
     @After
     public void stopServer() {
         if (server != null) {
             server.stop(0);
         }
-        System.clearProperty("aws.endpointUrlS3");
+        if (previousEndpointUrlS3 == null) {
+            System.clearProperty(ENDPOINT_URL_S3_PROPERTY);
+        } else {
+            System.setProperty(ENDPOINT_URL_S3_PROPERTY, previousEndpointUrlS3);
+        }
     }
 
     @Test
@@ -175,7 +195,7 @@ public class S3LogFileStoragePluginClientTest {
         if (pluginEndpoint) {
             plugin.setEndpoint(endpoint);
         } else {
-            System.setProperty("aws.endpointUrlS3", endpoint);
+            System.setProperty(ENDPOINT_URL_S3_PROPERTY, endpoint);
         }
         plugin.initialize(context());
         try {
