@@ -8,6 +8,8 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
+import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.S3Configuration;
@@ -223,7 +225,18 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
     }
 
     /**
-     * can override for testing
+     * Builds the S3 client. Can be overridden for testing.
+     *
+     * <p>When a custom endpoint is configured, flexible checksums are only calculated and
+     * validated when an operation requires them ({@code WHEN_REQUIRED}). Recent AWS SDK
+     * versions default to {@code WHEN_SUPPORTED}, which adds checksum headers and an
+     * {@code aws-chunked} trailer that many S3-compatible services reject. Without a custom
+     * endpoint the SDK defaults for AWS S3 are kept.</p>
+     *
+     * @param credentialsProvider credentials used to sign requests
+     * @param region              AWS region
+     *
+     * @return configured client
      */
     protected S3Client createS3Client(AwsCredentialsProvider credentialsProvider, Region region) {
         S3ClientBuilder builder = S3Client.builder()
@@ -235,7 +248,9 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
             if (!ep.startsWith("http://") && !ep.startsWith("https://")) {
                 ep = "https://" + ep;
             }
-            builder.endpointOverride(URI.create(ep));
+            builder.endpointOverride(URI.create(ep))
+                    .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
+                    .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED);
         }
 
         if (isPathStyle()) {
