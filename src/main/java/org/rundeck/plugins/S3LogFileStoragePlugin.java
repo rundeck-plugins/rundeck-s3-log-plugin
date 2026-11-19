@@ -10,6 +10,8 @@ import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
 import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
+import software.amazon.awssdk.profiles.ProfileFile;
+import software.amazon.awssdk.profiles.ProfileProperty;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.S3Configuration;
@@ -231,7 +233,9 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
      * validated when an operation requires them ({@code WHEN_REQUIRED}). Recent AWS SDK
      * versions default to {@code WHEN_SUPPORTED}, which adds checksum headers and an
      * {@code aws-chunked} trailer that many S3-compatible services reject. Without a custom
-     * endpoint the SDK defaults for AWS S3 are kept.</p>
+     * endpoint the SDK defaults for AWS S3 are kept. A checksum setting configured explicitly
+     * through the standard AWS SDK system property, environment variable or shared config
+     * profile is always honored, so the fallback only applies when nothing was configured.</p>
      *
      * @param credentialsProvider credentials used to sign requests
      * @param region              AWS region
@@ -248,9 +252,15 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
             if (!ep.startsWith("http://") && !ep.startsWith("https://")) {
                 ep = "https://" + ep;
             }
-            builder.endpointOverride(URI.create(ep))
-                    .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
-                    .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED);
+            builder.endpointOverride(URI.create(ep));
+            if (!isSdkSettingConfigured("aws.requestChecksumCalculation", "AWS_REQUEST_CHECKSUM_CALCULATION",
+                    ProfileProperty.REQUEST_CHECKSUM_CALCULATION)) {
+                builder.requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED);
+            }
+            if (!isSdkSettingConfigured("aws.responseChecksumValidation", "AWS_RESPONSE_CHECKSUM_VALIDATION",
+                    ProfileProperty.RESPONSE_CHECKSUM_VALIDATION)) {
+                builder.responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED);
+            }
         }
 
         if (isPathStyle()) {
@@ -260,6 +270,54 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
         }
 
         return builder.build();
+    }
+
+    /**
+     * Tells whether an AWS SDK setting was configured explicitly, using the same sources the SDK
+     * reads: system property, environment variable, then the active shared config profile.
+     *
+     * @param systemProperty  SDK system property name
+     * @param environmentName SDK environment variable name
+     * @param profileProperty shared config profile property name
+     *
+     * @return true when any source has a non-blank value
+     */
+    boolean isSdkSettingConfigured(String systemProperty, String environmentName, String profileProperty) {
+        if (isNotBlank(System.getProperty(systemProperty)) || isNotBlank(environmentValue(environmentName))) {
+            return true;
+        }
+        String profileName = System.getProperty("aws.profile");
+        if (!isNotBlank(profileName)) {
+            profileName = environmentValue("AWS_PROFILE");
+        }
+        if (!isNotBlank(profileName)) {
+            profileName = "default";
+        }
+        try {
+            return ProfileFile.defaultProfileFile()
+                    .profile(profileName.trim())
+                    .flatMap(profile -> profile.property(profileProperty))
+                    .filter(S3LogFileStoragePlugin::isNotBlank)
+                    .isPresent();
+        } catch (RuntimeException e) {
+            logger.debug("Could not read AWS shared config profile: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    private static boolean isNotBlank(String value) {
+        return null != value && !value.trim().isEmpty();
+    }
+
+    /**
+     * Reads an environment variable. Can be overridden for testing.
+     *
+     * @param name variable name
+     *
+     * @return the value, or {@code null} when unset
+     */
+    protected String environmentValue(String name) {
+        return System.getenv(name);
     }
 
     /**

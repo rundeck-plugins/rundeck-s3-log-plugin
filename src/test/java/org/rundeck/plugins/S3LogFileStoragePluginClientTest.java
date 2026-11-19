@@ -20,6 +20,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -59,9 +60,17 @@ public class S3LogFileStoragePluginClientTest {
     private static final Map<String, String> previousTrustStoreProperties = new HashMap<>();
 
     private static final String ENDPOINT_URL_S3_PROPERTY = "aws.endpointUrlS3";
+    private static final String REQUEST_CHECKSUM_PROPERTY = "aws.requestChecksumCalculation";
+    private static final String CONFIG_FILE_PROPERTY = "aws.configFile";
+
+    /** SDK system properties that tests change; each is restored after every test. */
+    private static final String[] SDK_PROPERTIES = {
+            ENDPOINT_URL_S3_PROPERTY, REQUEST_CHECKSUM_PROPERTY, "aws.responseChecksumValidation",
+            CONFIG_FILE_PROPERTY, "aws.sharedCredentialsFile", "aws.profile"};
 
     private HttpServer server;
-    private String previousEndpointUrlS3;
+    private final Map<String, String> previousSdkProperties = new HashMap<>();
+    private final Map<String, String> environment = new HashMap<>();
     private final List<RecordedRequest> requests = new CopyOnWriteArrayList<>();
 
     /**
@@ -105,27 +114,37 @@ public class S3LogFileStoragePluginClientTest {
     }
 
     /**
-     * Captures the SDK endpoint system property so each test can restore it afterwards.
+     * Captures the SDK system properties so each test can restore them afterwards, and isolates
+     * the test from the developer's or CI's own AWS settings: checksum properties are cleared and
+     * the shared config/credentials files point to empty temporary files.
      */
     @Before
-    public void captureEndpointProperty() {
-        previousEndpointUrlS3 = System.getProperty(ENDPOINT_URL_S3_PROPERTY);
+    public void isolateSdkSettings() throws IOException {
+        for (String name : SDK_PROPERTIES) {
+            previousSdkProperties.put(name, System.getProperty(name));
+            System.clearProperty(name);
+        }
+        System.setProperty(CONFIG_FILE_PROPERTY, TMP.newFile().getAbsolutePath());
+        System.setProperty("aws.sharedCredentialsFile", TMP.newFile().getAbsolutePath());
     }
 
     /**
-     * Stops the fake S3 server and restores the SDK endpoint system property to its previous
-     * value, clearing it only when it was not set before the test.
+     * Stops the fake S3 server and restores the SDK system properties to their previous values,
+     * clearing a property only when it was not set before the test.
      */
     @After
     public void stopServer() {
         if (server != null) {
             server.stop(0);
         }
-        if (previousEndpointUrlS3 == null) {
-            System.clearProperty(ENDPOINT_URL_S3_PROPERTY);
-        } else {
-            System.setProperty(ENDPOINT_URL_S3_PROPERTY, previousEndpointUrlS3);
-        }
+        previousSdkProperties.forEach((name, value) -> {
+            if (value == null) {
+                System.clearProperty(name);
+            } else {
+                System.setProperty(name, value);
+            }
+        });
+        previousSdkProperties.clear();
     }
 
     @Test
@@ -174,18 +193,59 @@ public class S3LogFileStoragePluginClientTest {
      */
     @Test
     public void noEndpointKeepsSdkDefaultChecksum() throws Exception {
+        System.setProperty(REQUEST_CHECKSUM_PROPERTY, "WHEN_SUPPORTED");
+
         RecordedRequest request = storeThroughPlugin(true, true, false);
 
-        Assert.assertTrue("expected SDK default checksum, headers: " + request.headers,
-                request.header("x-amz-sdk-checksum-algorithm") != null
-                        || request.header("x-amz-trailer") != null);
+        assertChecksum(request);
+        Assert.assertArrayEquals(PAYLOAD, request.decodedBody());
+    }
+
+    /** An explicit SDK system property must win over the custom-endpoint compatibility fallback. */
+    @Test
+    public void customEndpointHonorsExplicitChecksumSystemProperty() throws Exception {
+        System.setProperty(REQUEST_CHECKSUM_PROPERTY, "WHEN_SUPPORTED");
+
+        RecordedRequest request = storeThroughPlugin(true, true, true);
+
+        assertChecksum(request);
+        Assert.assertArrayEquals(PAYLOAD, request.decodedBody());
+    }
+
+    /** An explicit SDK environment variable must win over the custom-endpoint compatibility fallback. */
+    @Test
+    public void customEndpointHonorsExplicitChecksumEnvironmentVariable() throws Exception {
+        environment.put("AWS_REQUEST_CHECKSUM_CALCULATION", "when_supported");
+
+        RecordedRequest request = storeThroughPlugin(true, true, true);
+
+        assertChecksum(request);
+        Assert.assertArrayEquals(PAYLOAD, request.decodedBody());
+    }
+
+    /** An explicit setting in the AWS shared config profile must win over the compatibility fallback. */
+    @Test
+    public void customEndpointHonorsExplicitChecksumProfileSetting() throws Exception {
+        File config = TMP.newFile();
+        Files.write(config.toPath(),
+                "[default]\nrequest_checksum_calculation = when_supported\n".getBytes(StandardCharsets.UTF_8));
+        System.setProperty(CONFIG_FILE_PROPERTY, config.getAbsolutePath());
+
+        RecordedRequest request = storeThroughPlugin(true, true, true);
+
+        assertChecksum(request);
         Assert.assertArrayEquals(PAYLOAD, request.decodedBody());
     }
 
     private RecordedRequest storeThroughPlugin(boolean https, boolean pathStyle, boolean pluginEndpoint)
             throws Exception {
         String endpoint = startServer(https);
-        S3LogFileStoragePlugin plugin = new S3LogFileStoragePlugin();
+        S3LogFileStoragePlugin plugin = new S3LogFileStoragePlugin() {
+            @Override
+            protected String environmentValue(String name) {
+                return environment.get(name);
+            }
+        };
         plugin.setAWSAccessKeyId("test-access-key");
         plugin.setAWSSecretKey("test-secret-key");
         plugin.setBucket(BUCKET);
@@ -260,6 +320,12 @@ public class S3LogFileStoragePluginClientTest {
         Assert.assertFalse("unexpected trailer payload mode: " + sha, sha != null && sha.endsWith("-TRAILER"));
         Assert.assertTrue("unexpected checksum trailer in body",
                 request.trailers.isEmpty());
+    }
+
+    private static void assertChecksum(RecordedRequest request) {
+        Assert.assertTrue("expected an SDK checksum, headers: " + request.headers,
+                request.header("x-amz-sdk-checksum-algorithm") != null
+                        || request.header("x-amz-trailer") != null);
     }
 
     private static void assertPathStyle(RecordedRequest request) {
