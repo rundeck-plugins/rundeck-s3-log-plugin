@@ -274,7 +274,8 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
 
     /**
      * Tells whether an AWS SDK setting was configured explicitly, using the same sources the SDK
-     * reads: system property, environment variable, then the active shared config profile.
+     * reads: system property, environment variable, then the active shared config profile. The
+     * profile lookup assumes the client keeps the SDK's default profile file and profile name.
      *
      * @param systemProperty  SDK system property name
      * @param environmentName SDK environment variable name
@@ -286,16 +287,11 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
         if (isNotBlank(System.getProperty(systemProperty)) || isNotBlank(environmentValue(environmentName))) {
             return true;
         }
-        String profileName = System.getProperty("aws.profile");
-        if (!isNotBlank(profileName)) {
-            profileName = environmentValue("AWS_PROFILE");
-        }
-        if (!isNotBlank(profileName)) {
-            profileName = "default";
-        }
+        String profileName = firstNonBlank(System.getProperty("aws.profile"), environmentValue("AWS_PROFILE"),
+                "default");
         try {
             return ProfileFile.defaultProfileFile()
-                    .profile(profileName.trim())
+                    .profile(profileName)
                     .flatMap(profile -> profile.property(profileProperty))
                     .filter(S3LogFileStoragePlugin::isNotBlank)
                     .isPresent();
@@ -307,6 +303,22 @@ public class S3LogFileStoragePlugin implements ExecutionFileStoragePlugin, Execu
 
     private static boolean isNotBlank(String value) {
         return null != value && !value.trim().isEmpty();
+    }
+
+    /**
+     * Returns the first non-blank value, trimmed.
+     *
+     * @param values candidates in priority order
+     *
+     * @return the first non-blank value, or {@code null} when all are blank
+     */
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (isNotBlank(value)) {
+                return value.trim();
+            }
+        }
+        return null;
     }
 
     /**
